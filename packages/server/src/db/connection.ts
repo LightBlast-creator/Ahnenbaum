@@ -5,8 +5,8 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 export interface DbConnection {
-    db: BetterSQLite3Database;
-    sqlite: BetterSqlite3.Database;
+  db: BetterSQLite3Database;
+  sqlite: BetterSqlite3.Database;
 }
 
 /**
@@ -19,17 +19,17 @@ export interface DbConnection {
  *             to read from `DATABASE_URL` env (default: `./data/ahnenbaum.db`).
  */
 export function createDb(url?: string): DbConnection {
-    const dbPath = url ?? process.env.DATABASE_URL ?? './data/ahnenbaum.db';
+  const dbPath = url ?? process.env.DATABASE_URL ?? './data/ahnenbaum.db';
 
-    // Auto-create parent directory (skip for in-memory databases)
-    if (dbPath !== ':memory:') {
-        mkdirSync(dirname(dbPath), { recursive: true });
-    }
+  // Auto-create parent directory (skip for in-memory databases)
+  if (dbPath !== ':memory:') {
+    mkdirSync(dirname(dbPath), { recursive: true });
+  }
 
-    const sqlite = new Database(dbPath);
-    sqlite.pragma('journal_mode = WAL');
+  const sqlite = new Database(dbPath);
+  sqlite.pragma('journal_mode = WAL');
 
-    const db = drizzle({ client: sqlite });
+  const db = drizzle({ client: sqlite });
 
-    return { db, sqlite };
+  return { db, sqlite };
 }

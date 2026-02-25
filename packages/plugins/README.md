@@ -6,10 +6,10 @@ Each plugin lives in its own subdirectory and is a separate npm workspace packag
 
 ## Planned Plugins
 
-| Plugin | Description | Phase |
-|--------|-------------|-------|
+| Plugin    | Description                       | Phase   |
+| --------- | --------------------------------- | ------- |
 | `charts/` | Pedigree, fan, descendancy charts | Phase 5 |
-| `gedcom/` | GEDCOM 7.0 + 5.5.1 import/export | Phase 5 |
+| `gedcom/` | GEDCOM 7.0 + 5.5.1 import/export  | Phase 5 |
 
 ## Creating a Plugin
 

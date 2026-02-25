@@ -7,8 +7,8 @@ Scope: current family tree/genealogy software where users can build relationship
 
 Current market leadership is concentrated in three cloud platforms:
 
-1. Ancestry (paid, global)  
-2. FamilySearch (free, global nonprofit)  
+1. Ancestry (paid, global)
+2. FamilySearch (free, global nonprofit)
 3. MyHeritage (paid freemium, global)
 
 Why these three lead:
@@ -143,16 +143,16 @@ Best use: privacy-first or self-hosted teams/families with technical capability.
 
 Legend: Strong = core and mature; Good = present and practical; Variable = present but tied to workflow constraints.
 
-| Platform | Relationships | Photos/Documents | Notes/Stories | Collaboration Model | Price Model |
-|---|---|---|---|---|---|
-| Ancestry | Strong | Strong | Strong | Invite/share + public/private trees | Paid subscription |
-| FamilySearch | Strong | Strong | Strong | Shared global tree | Free |
-| MyHeritage | Strong | Strong (AI-heavy) | Good | Family/collaborative trees | Freemium + paid tiers |
-| Findmypast | Good | Good | Good | Family sharing + records workflow | Paid tiers + free starter |
-| Geneanet | Strong | Good | Good | Community collaborative trees | Freemium |
-| Geni | Strong | Good | Good | Single connected world tree | Freemium + Pro |
-| RootsMagic | Strong | Strong | Strong | Primarily local/offline | One-time license |
-| Gramps/Gramps Web | Strong | Strong | Strong | Self-hosted or local collaborative | Free/open-source |
+| Platform          | Relationships | Photos/Documents  | Notes/Stories | Collaboration Model                 | Price Model               |
+| ----------------- | ------------- | ----------------- | ------------- | ----------------------------------- | ------------------------- |
+| Ancestry          | Strong        | Strong            | Strong        | Invite/share + public/private trees | Paid subscription         |
+| FamilySearch      | Strong        | Strong            | Strong        | Shared global tree                  | Free                      |
+| MyHeritage        | Strong        | Strong (AI-heavy) | Good          | Family/collaborative trees          | Freemium + paid tiers     |
+| Findmypast        | Good          | Good              | Good          | Family sharing + records workflow   | Paid tiers + free starter |
+| Geneanet          | Strong        | Good              | Good          | Community collaborative trees       | Freemium                  |
+| Geni              | Strong        | Good              | Good          | Single connected world tree         | Freemium + Pro            |
+| RootsMagic        | Strong        | Strong            | Strong        | Primarily local/offline             | One-time license          |
+| Gramps/Gramps Web | Strong        | Strong            | Strong        | Self-hosted or local collaborative  | Free/open-source          |
 
 ## Who Is the "Market Leader" by Segment?
 
@@ -199,4 +199,3 @@ Legend: Strong = core and mature; Good = present and practical; Variable = prese
 - RootsMagic official site: https://www.rootsmagic.com/
 - Gramps project site/blog: https://gramps-project.org/blog/
 - Gramps Web: https://www.grampsweb.org/
-

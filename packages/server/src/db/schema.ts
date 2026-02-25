@@ -7,4 +7,4 @@
  */
 
 // Ensure this file is a valid module (required for `export *` re-exports).
-export { };
+export {};
