@@ -50,3 +50,15 @@
 ## Hono: `onError` only receives Error instances
 - Hono's `onError` handler receives `Error | HTTPException`. Throwing non-Error values (strings, numbers) causes Hono to re-throw them rather than passing to `onError`.
 - **Fix**: Only test error handler with `Error` subclasses (e.g., `TypeError`, `Error`). Non-Error throws are an anti-pattern anyway.
+
+## SvelteKit: `page.params.id` is `string | undefined`
+- Route params from `$app/state`'s `page.params` are `string | undefined`, not `string`. Passing directly to functions expecting `string` triggers TS errors.
+- **Fix**: Always coalesce route params: `page.params.id ?? ''`, then guard downstream calls.
+
+## JavaScript: `-0` from multiplication
+- `0 * -120` produces `-0`, which fails `Object.is(-0, 0)` and thus Jest/Vitest `.toBe(0)`.
+- **Fix**: Use `|| 0` coercion when the result should never be negative zero.
+
+## Svelte 5: TreeCanvas interactive div pattern
+- `<div>` with `role="application"` + mouse event handlers is valid a11y (interactive canvas), but svelte-check still warns about non-interactive element interactions.
+- **Fix**: Add `<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->`. The `role="application"` makes the div semantically interactive.

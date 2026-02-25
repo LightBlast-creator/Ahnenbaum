@@ -49,6 +49,17 @@ export default tseslint.config(
         parser: tseslint.parser,
       },
     },
+    rules: {
+      // We don't use a base path prefix, so resolve() adds no value
+      'svelte/no-navigation-without-resolve': 'off',
+      // Theme initialisation intentionally uses $state + $effect (read-from-DOM on mount)
+      'svelte/prefer-writable-derived': 'off',
+      // Allow _ prefix for intentionally unused variables (e.g. {#each Array(n) as _})
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
   },
 
   // Config files (vitest.config.ts, drizzle.config.ts, etc.) — Node env
