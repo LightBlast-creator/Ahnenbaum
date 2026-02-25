@@ -78,5 +78,9 @@
   "dashboard_browse": "Browse all persons",
   "optional_fields": "More details",
   "required_field": "This field is required",
-  "confirm_discard": "You have unsaved changes. Discard them?"
+  "confirm_discard": "You have unsaved changes. Discard them?",
+  "toast_person_updated": "Person updated successfully",
+  "toast_event_added": "Event added successfully",
+  "duplicate_warning": "Possible duplicates found",
+  "event_add": "Add Event"
 }

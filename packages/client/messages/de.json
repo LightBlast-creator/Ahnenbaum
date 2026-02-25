@@ -78,5 +78,9 @@
   "dashboard_browse": "Alle Personen durchsuchen",
   "optional_fields": "Weitere Details",
   "required_field": "Dieses Feld ist erforderlich",
-  "confirm_discard": "Du hast ungespeicherte Änderungen. Verwerfen?"
+  "confirm_discard": "Du hast ungespeicherte Änderungen. Verwerfen?",
+  "toast_person_updated": "Person erfolgreich aktualisiert",
+  "toast_event_added": "Ereignis erfolgreich hinzugefügt",
+  "duplicate_warning": "Mögliche Duplikate gefunden",
+  "event_add": "Ereignis hinzufügen"
 }

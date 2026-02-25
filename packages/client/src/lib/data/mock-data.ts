@@ -911,9 +911,7 @@ export function getEventsForPerson(personId: string): (Event & { place?: Place }
     });
 }
 
-export function getRelationshipsForPerson(
-  personId: string,
-): {
+export function getRelationshipsForPerson(personId: string): {
   relationship: Relationship;
   relatedPerson: PersonWithDetails;
   role: 'parent' | 'child' | 'partner';
@@ -1094,4 +1092,83 @@ export function getPlace(id: string): Place | undefined {
 
 export function getAllPlaces(): Place[] {
   return [...places];
+}
+
+// ── Mutation functions for inline editing (#25, #27) ──
+
+export interface UpdatePersonData {
+  given?: string;
+  surname?: string;
+  sex?: Sex;
+  notes?: string;
+}
+
+export function updatePerson(id: string, data: UpdatePersonData): PersonWithDetails | undefined {
+  const idx = persons.findIndex((p) => p.id === id && !p.deletedAt);
+  if (idx === -1) return undefined;
+
+  const now = new Date().toISOString();
+  persons[idx] = { ...persons[idx], updatedAt: now };
+
+  if (data.sex !== undefined) persons[idx].sex = data.sex;
+  if (data.notes !== undefined) persons[idx].notes = data.notes;
+
+  // Update name fields on the preferred name
+  const nameIdx = personNames.findIndex((n) => n.personId === id && n.isPreferred);
+  if (nameIdx !== -1) {
+    if (data.given !== undefined) personNames[nameIdx].given = data.given;
+    if (data.surname !== undefined) personNames[nameIdx].surname = data.surname;
+    personNames[nameIdx].updatedAt = now;
+  }
+
+  return enrichPerson(persons[idx]);
+}
+
+export interface AddEventData {
+  type: Event['type'];
+  date?: GenealogyDate;
+  placeId?: string;
+  description?: string;
+  notes?: string;
+}
+
+export function addEventToPerson(personId: string, data: AddEventData): Event {
+  const now = new Date().toISOString();
+  const event: Event = {
+    id: `e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    type: data.type,
+    personId,
+    date: data.date,
+    placeId: data.placeId,
+    description: data.description,
+    notes: data.notes,
+    createdAt: now,
+    updatedAt: now,
+  };
+  events.push(event);
+  return event;
+}
+
+export function deleteEvent(eventId: string): boolean {
+  const idx = events.findIndex((e) => e.id === eventId);
+  if (idx === -1) return false;
+  events[idx] = { ...events[idx], deletedAt: new Date().toISOString() };
+  return true;
+}
+
+export function checkDuplicatePerson(given: string, surname: string): PersonWithDetails[] {
+  const g = given.toLowerCase().trim();
+  const s = surname.toLowerCase().trim();
+  if (!g && !s) return [];
+
+  return persons
+    .filter((p) => !p.deletedAt)
+    .map(enrichPerson)
+    .filter((p) =>
+      p.allNames.some((n) =>
+        g && s
+          ? n.given.toLowerCase().includes(g) && n.surname.toLowerCase().includes(s)
+          : (g && n.given.toLowerCase().includes(g)) || (s && n.surname.toLowerCase().includes(s)),
+      ),
+    );
 }

@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { resolveRoute } from '$app/paths';
   import * as m from '$lib/paraglide/messages';
-  import { createPerson, type CreatePersonData } from '$lib/data/mock-data';
+  import { createPerson, checkDuplicatePerson, type CreatePersonData } from '$lib/data/mock-data';
   import DateInput from '$lib/components/DateInput.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import type { GenealogyDate, Sex } from '@ahnenbaum/core';
@@ -32,6 +32,15 @@
       deathDate !== undefined ||
       notes.trim().length > 0,
   );
+
+  // Duplicate detection (#27)
+  const duplicates = $derived.by(() => {
+    const g = given.trim();
+    const s = surname.trim();
+    if (g.length < 2 && s.length < 2) return [];
+    return checkDuplicatePerson(g, s);
+  });
+  const hasDuplicateWarning = $derived(duplicates.length > 0);
 
   let givenInput: HTMLInputElement | undefined = $state(undefined);
 
@@ -145,6 +154,20 @@
             {/each}
           </select>
         </div>
+
+        {#if hasDuplicateWarning}
+          <div class="duplicate-warning" role="alert">
+            <span class="warning-icon">⚠️</span>
+            <div>
+              <strong>{m.duplicate_warning()}:</strong>
+              <ul class="duplicate-list">
+                {#each duplicates.slice(0, 3) as dup (dup.id)}
+                  <li>{dup.preferredName.given} {dup.preferredName.surname}</li>
+                {/each}
+              </ul>
+            </div>
+          </div>
+        {/if}
 
         <button class="toggle-optional" onclick={() => (showOptional = !showOptional)}>
           <svg
@@ -374,6 +397,42 @@
   @media (max-width: 768px) {
     .form-row {
       grid-template-columns: 1fr;
+    }
+  }
+
+  .duplicate-warning {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: hsl(45 93% 94%);
+    border: 1px solid hsl(45 93% 60%);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+  }
+
+  :global([data-theme='dark']) .duplicate-warning {
+    background: hsl(45 40% 15%);
+    border-color: hsl(45 70% 35%);
+  }
+
+  .warning-icon {
+    flex-shrink: 0;
+  }
+
+  .duplicate-list {
+    margin-top: var(--space-1);
+    padding-left: var(--space-4);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .modal-backdrop {
+      animation: none;
+    }
+
+    .modal {
+      animation: none;
     }
   }
 </style>
