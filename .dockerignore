@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build artifacts (rebuilt inside Docker)
+dist/
+build/
+.svelte-kit/
+**/paraglide/
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+
+# Version control
+.git/
+.gitignore
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / coverage
+coverage/
+
+# Documentation & agent (not needed at runtime)
+.agent/
+documents/
+.github/
+.husky/
+ARCHITECTURE.md
+CONVENTIONS.md
+README.md
+
+# Config files not needed in build
+.prettierrc
+.prettierignore
+eslint.config.js
+
+# Misc
+*.tgz

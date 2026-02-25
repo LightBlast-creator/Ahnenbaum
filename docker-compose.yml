@@ -1,0 +1,31 @@
+services:
+  server:
+    build:
+      context: .
+      target: server
+    ports:
+      - '3000:3000'
+    volumes:
+      - db-data:/app/packages/server/data
+      - media:/app/media
+    environment:
+      - PORT=3000
+      - DATABASE_URL=/app/packages/server/data/ahnenbaum.db
+    restart: unless-stopped
+
+  client:
+    build:
+      context: .
+      target: client
+    ports:
+      - '3001:3001'
+    environment:
+      - PORT=3001
+      - ORIGIN=http://localhost:3001
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  media:
