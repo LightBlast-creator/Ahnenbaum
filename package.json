@@ -12,6 +12,7 @@
     "packages/client"
   ],
   "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
