@@ -1,7 +1,7 @@
 # Ahnenbaum — Product Requirements Document
 
-> **Version:** 1.1  
-> **Date:** 2026-02-24  
+> **Version:** 1.2  
+> **Date:** 2026-02-25  
 > **Status:** Draft — awaiting review  
 > **Based on:** [Comprehensive market research](file:///Users/patrickprobst/Downloads/Ahnenbaum/documents/research_comprehensive.md)
 
@@ -248,6 +248,100 @@ Plugins run in the same process as the core (no sandboxing) — this keeps thing
 
 ---
 
+### 4.4 Developer Workflow & LLM-Collaborative Architecture
+
+> [!IMPORTANT]
+> This project is built by **two developers using LLMs as their primary coding tool**. Every architectural decision below exists to make LLM-generated code reliable and to prevent two people from stepping on each other's work.
+
+#### Monorepo Structure
+
+The codebase is a monorepo using **npm workspaces**. Each package is an isolated unit with its own types, source, and tests. Two developers can work on separate packages with **zero file overlap**.
+
+```
+ahnenbaum/
+├── packages/
+│   ├── core/                  ← Shared types, data model, plugin API
+│   │   └── src/
+│   │       ├── models/         ← Person, Relationship, Media, Event types
+│   │       ├── plugin-api/     ← PluginContext, hook definitions, panel slots
+│   │       └── i18n/           ← Message files (en.json, de.json)
+│   ├── server/                 ← Hono API server, DB layer, auth
+│   │   └── src/
+│   │       ├── routes/          ← API route handlers (persons, media, search)
+│   │       ├── db/              ← Drizzle schema, migrations, queries
+│   │       ├── services/        ← Business logic (person-service, media-service)
+│   │       └── plugin-runtime/  ← Server-side plugin loader
+│   ├── client/                  ← SvelteKit frontend (follows SvelteKit conventions)
+│   │   └── src/
+│   │       ├── lib/
+│   │       │   ├── components/   ← Reusable UI components
+│   │       │   ├── stores/       ← Svelte stores for state management
+│   │       │   └── plugin-slots/ ← UI injection points for plugins
+│   │       └── routes/           ← SvelteKit pages/routes
+│   └── plugins/
+│       ├── charts/              ← plugin-charts (first-party)
+│       └── gedcom/              ← plugin-gedcom (first-party)
+├── ARCHITECTURE.md              ← Always-current map of what lives where
+├── CONVENTIONS.md               ← Code rules for developers and LLMs
+├── .agent/                      ← Shared LLM agent rules, lessons, context
+│   └── rules/
+└── docker-compose.yml
+```
+
+**The key rule:** Developer A works in `packages/server/` while Developer B works in `packages/client/`. They share contracts via `packages/core/` — which is touched rarely and carefully.
+
+#### Development Principles for LLM-Assisted Coding
+
+| Principle | Rule | Why it matters for LLMs |
+|---|---|---|
+| **Contract-first** | Define TypeScript interfaces in `packages/core/` *before* implementing them | LLMs are excellent at implementing against a defined interface, but terrible at guessing undocumented APIs |
+| **Strict module boundaries** | Each package exports via `index.ts` barrel files. Internals are private | An LLM generating server code can't accidentally break client code — they only interact through typed contracts |
+| **One feature = one branch** | Never two people on the same branch. Feature branches with small, focused PRs | LLMs generate cleaner code when the diff scope is small |
+| **Thin files** | Target ~300 lines per file. Split when growing beyond that | LLMs lose accuracy on files > 500 lines. Small files = more precise edits = fewer bugs |
+| **Tests as safety nets** | Every module's public API has tests (Vitest) | When Developer A changes a module, tests tell them (and their LLM) if they broke Developer B's dependency |
+| **Shared `.agent/` directory** | Both developers' LLM agents load the same rules and context | Keeps both agents aligned on conventions, naming, and architecture decisions |
+
+#### Code Conventions
+
+These rules live in `CONVENTIONS.md` at the repo root. Both developers (and their LLMs) follow them:
+
+| Convention | Rule |
+|---|---|
+| **Formatting** | Prettier with shared config — auto-formatted on save, LLMs don't worry about style |
+| **Linting** | ESLint with strict TypeScript rules — catches LLM mistakes before commit |
+| **File naming** | `kebab-case` for all files (e.g. `person-service.ts`, `media-upload.svelte`) |
+| **Component naming** | `PascalCase` for Svelte components (e.g. `PersonCard.svelte`) |
+| **Function/variable naming** | `camelCase` (e.g. `getPersonById`, `mediaStore`) |
+| **Imports** | Absolute imports via path aliases: `@core/`, `@server/`, `@client/` — avoids fragile relative paths |
+| **Error handling** | Result types (`{ ok: true, data } | { ok: false, error }`) over thrown exceptions — LLMs handle explicit returns better than try/catch |
+| **No hardcoded strings** | All user-facing text goes through the i18n system |
+| **Testing** | Vitest for all packages — SvelteKit's default, fast, TypeScript-native |
+
+#### Database Migration Strategy
+
+Two developers touching the database schema simultaneously will break things without rules:
+
+| Rule | Detail |
+|---|---|
+| Migrations are **generated** | Use `drizzle-kit generate` — never hand-write migration SQL |
+| One migration per feature branch | Each branch creates its own migration file |
+| Migrations are sequential | Merged in timestamp order; conflicts caught at PR merge time |
+| Shared seed data | A `seed.ts` script creates a test family (10-20 people with relationships, media, events) so both developers work with identical test data |
+| Schema changes go through `packages/core/` | Any data model change updates the shared types first, then the Drizzle schema — contract-first |
+
+#### CI Pipeline (GitHub Actions)
+
+Every PR must pass before merge — this is the automated safety net for LLM-generated code:
+
+| Step | What it checks |
+|---|---|
+| `lint` | ESLint + Prettier — catches style and type issues |
+| `typecheck` | `tsc --noEmit` — ensures all types resolve correctly across packages |
+| `test` | `vitest run` — all tests pass |
+| `build` | Full production build succeeds |
+
+---
+
 ## 5. Core Features (The "Solid Base")
 
 These are the non-negotiable features that ship in the core — no plugins required.
@@ -453,6 +547,10 @@ These are **out of scope for core** and should only exist as plugins (if ever):
 ### Phase 1 — Foundation (MVP)
 > Goal: A usable, beautiful family tree app you can self-host.
 
+- [ ] Monorepo setup (`packages/core`, `packages/server`, `packages/client`, `packages/plugins`)
+- [ ] `ARCHITECTURE.md` and `CONVENTIONS.md` in repo root
+- [ ] `.agent/` directory with shared LLM rules
+- [ ] CI pipeline (lint, typecheck, test, build)
 - [ ] Person CRUD with full fact/event system
 - [ ] Flexible relationship engine
 - [ ] Media upload and linking
@@ -466,6 +564,7 @@ These are **out of scope for core** and should only exist as plugins (if ever):
 - [ ] `plugin-gedcom` (bundled)
 - [ ] English + German i18n
 - [ ] Dark mode
+- [ ] Database seed script (`seed.ts`)
 
 ### Phase 2 — Collaborate
 > Goal: Family members can work together on the tree.
@@ -516,6 +615,9 @@ Since this starts as a personal/family project, metrics are practical rather tha
 | 5 | Licensing | **MIT** (tentative) | Maximum permissiveness for a personal project; can revisit if it grows |
 | 6 | Mobile strategy | **Responsive webapp only** | No native mobile apps; responsive design is sufficient |
 | 7 | Offline-first / CRDT | **Not in scope** | Significant complexity; revisit only if real need emerges |
+| 8 | Development model | **Monorepo + contract-first + LLM-collaborative** | Two developers with LLMs working in parallel; packages isolate work areas; shared contracts prevent conflicts |
+| 9 | Testing framework | **Vitest** | SvelteKit default; fast; TypeScript-native |
+| 10 | CI | **GitHub Actions** (lint → typecheck → test → build) | Automated safety net — every PR validated before merge |
 
 ---
 
