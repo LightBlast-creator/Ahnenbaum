@@ -23,4 +23,4 @@ export type {
 export type { Event, EventType } from './event';
 export type { Place } from './place';
 export type { Source, Citation, CitationConfidence } from './source';
-export type { Media, MediaType, MediaLink, MediaLinkEntityType } from './media';
+export type { Media, MediaType, MediaLink, MediaLinkEntityType, MediaMetadata } from './media';
