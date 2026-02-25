@@ -20,17 +20,32 @@ always-load: true
 ### 🎨 Frontend & UI (SvelteKit)
 | Skill | Use When |
 |-------|----------|
-| *(none yet)* | Svelte components, SvelteKit routing, stores |
+| `sveltekit` | Routing, load functions, form actions, hooks, adapters, SSR |
 
 ### ⚙️ Backend & APIs (Hono)
 | Skill | Use When |
 |-------|----------|
-| *(none yet)* | Hono routes, middleware, validation |
+| `hono-routing` | Hono routes, middleware, validation (Zod/Valibot), RPC, error handling |
+
+### 🗄️ Database (Drizzle + SQLite)
+| Skill | Use When |
+|-------|----------|
+| `drizzle` | Drizzle queries, CRUD, schema definitions, migrations, custom types |
 
 ### 🧪 Testing & Quality
 | Skill | Use When |
 |-------|----------|
-| *(none yet)* | Vitest unit tests, test fixtures, coverage |
+| `vitest-testing` | Vitest unit/integration tests, mocking, ESM support, coverage |
+
+### 🚀 CI/CD & Deployment
+| Skill | Use When |
+|-------|----------|
+| `github-actions-ci` | GitHub Actions workflows, lint/test/build pipelines, preview deploys |
+
+### 📦 Monorepo & Tooling
+| Skill | Use When |
+|-------|----------|
+| `npm-workspaces` | npm workspaces, package deps, build ordering, cross-package development |
 
 ### 🔍 Discovery
 | Skill | Use When |
@@ -44,15 +59,19 @@ always-load: true
 ```
 Starting a task?
 │
-├─ UI components / SvelteKit? → Search for: svelte, sveltekit skills
+├─ UI components / SvelteKit? → Load: sveltekit
 │
-├─ State management? → Search for: svelte stores, state management skills
+├─ State management? → Load: sveltekit (Svelte 5 runes/stores)
 │
-├─ Backend API (Hono)? → Search for: hono, node.js backend skills
+├─ Backend API (Hono)? → Load: hono-routing
 │
-├─ Database (SQLite)? → Search for: sqlite, drizzle, database skills
+├─ Database (SQLite / Drizzle)? → Load: drizzle
 │
-├─ Writing tests? → Search for: vitest, testing skills
+├─ Writing tests? → Load: vitest-testing
+│
+├─ CI/CD / GitHub Actions? → Load: github-actions-ci
+│
+├─ Monorepo / workspaces? → Load: npm-workspaces
 │
 ├─ Auth / GEDCOM / genealogy? → Search for relevant domain skills
 │
