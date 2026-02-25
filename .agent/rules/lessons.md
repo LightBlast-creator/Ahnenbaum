@@ -22,3 +22,8 @@
 ## drizzle-kit: Does not auto-create parent directories
 - `drizzle-kit migrate` uses its own `better-sqlite3` instance and does NOT auto-create parent dirs for the DB file.
 - **Fix**: Prefix the npm script with `mkdir -p data &&` to ensure the directory exists.
+
+## npm: Always verify package versions against registry
+- Web search results for "latest version" may be stale or wrong (e.g. `@eslint/js@^10.0.2` doesn't exist — latest is `10.0.1`).
+- **Fix**: Before installing, run `npm view <pkg> version` to confirm actual latest. Same for `prettier-plugin-svelte` (v3, not v4).
+

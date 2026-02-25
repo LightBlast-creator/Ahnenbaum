@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+.svelte-kit
+drizzle
+coverage
+package-lock.json
+.agent
