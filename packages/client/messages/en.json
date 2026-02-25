@@ -1,0 +1,14 @@
+{
+  "app_title": "Ahnenbaum",
+  "nav_home": "Home",
+  "nav_tree": "Family Tree",
+  "nav_people": "People",
+  "nav_media": "Media",
+  "nav_settings": "Settings",
+  "person_add": "Add Person",
+  "person_birth": "Birth Date",
+  "person_death": "Death Date",
+  "search_placeholder": "Search people, places, notes…",
+  "theme_dark": "Dark Mode",
+  "theme_light": "Light Mode"
+}

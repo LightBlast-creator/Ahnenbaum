@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { APP_NAME } from '@ahnenbaum/core';
+  import * as m from '$lib/paraglide/messages';
 </script>
 
-<h1>Welcome to {APP_NAME}</h1>
-<p>The VS Code of genealogy — lightweight, beautiful, and infinitely extensible.</p>
+<h1>{m.nav_home()} — {m.app_title()}</h1>
+<p>{m.nav_tree()} · {m.nav_people()} · {m.nav_media()} · {m.nav_settings()}</p>

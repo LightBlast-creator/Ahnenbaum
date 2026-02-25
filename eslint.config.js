@@ -15,6 +15,7 @@ export default tseslint.config(
       '**/.svelte-kit/**',
       '**/drizzle/**',
       '**/coverage/**',
+      '**/paraglide/**',
     ],
   },
 

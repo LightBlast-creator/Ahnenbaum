@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ahnenbaum/core": "*"
+    "@ahnenbaum/core": "*",
+    "@inlang/paraglide-js": "^2.12.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.3",

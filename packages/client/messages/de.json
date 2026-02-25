@@ -1,0 +1,14 @@
+{
+  "app_title": "Ahnenbaum",
+  "nav_home": "Startseite",
+  "nav_tree": "Stammbaum",
+  "nav_people": "Personen",
+  "nav_media": "Medien",
+  "nav_settings": "Einstellungen",
+  "person_add": "Person hinzufügen",
+  "person_birth": "Geburtsdatum",
+  "person_death": "Sterbedatum",
+  "search_placeholder": "Personen, Orte, Notizen suchen…",
+  "theme_dark": "Dunkelmodus",
+  "theme_light": "Hellmodus"
+}

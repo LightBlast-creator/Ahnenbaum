@@ -4,5 +4,6 @@ build
 .svelte-kit
 drizzle
 coverage
+paraglide
 package-lock.json
 .agent
