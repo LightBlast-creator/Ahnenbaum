@@ -10,6 +10,19 @@ export default defineConfig({
       outdir: './src/lib/paraglide',
       strategy: ['preferredLanguage', 'baseLocale'],
     }),
+    {
+      name: 'strip-codesplitting',
+      configResolved(config) {
+        const output = config.build?.rollupOptions?.output;
+        if (output) {
+          if (Array.isArray(output)) {
+            output.forEach((o) => delete (o as Record<string, unknown>).codeSplitting);
+          } else {
+            delete (output as Record<string, unknown>).codeSplitting;
+          }
+        }
+      },
+    },
   ],
   test: {
     include: ['src/**/*.test.ts'],
