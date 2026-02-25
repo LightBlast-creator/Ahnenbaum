@@ -26,14 +26,15 @@ Browser (SPA)  ──REST API──▸  Server  ──Drizzle ORM──▸  SQLi
 
 Shared types, constants, and (future) plugin API. This is the **contract layer** — both server and client depend on it, but it depends on nothing.
 
-| Directory          | Purpose                                                   |
-| ------------------ | --------------------------------------------------------- |
-| `src/constants.ts` | App-wide constants (`APP_NAME`, `APP_VERSION`)            |
-| `src/types.ts`     | Shared response types (`HealthStatus`)                    |
-| `src/models/`      | Domain model interfaces (`Person`)                        |
-| `src/i18n/`        | Language files (planned)                                  |
-| `src/plugin-api/`  | Plugin interface, hook definitions, panel slots (planned) |
-| `src/index.ts`     | Barrel export — **the only import surface**               |
+| Directory          | Purpose                                                                           |
+| ------------------ | --------------------------------------------------------------------------------- |
+| `src/constants.ts` | App-wide constants (`APP_NAME`, `APP_VERSION`)                                    |
+| `src/types.ts`     | Shared response types (`HealthStatus`)                                            |
+| `src/result.ts`    | `Result<T>`, `AppError`, `ErrorCode` — explicit error handling                    |
+| `src/models/`      | Domain model interfaces (Person, Relationship, Event, Date, Place, Source, Media) |
+| `src/i18n/`        | Language files (planned)                                                          |
+| `src/plugin-api/`  | Plugin interface, hook definitions, panel slots (planned)                         |
+| `src/index.ts`     | Barrel export — **the only import surface**                                       |
 
 **Depends on:** nothing
 **Depended on by:** `@ahnenbaum/server`, `@ahnenbaum/client`, plugins
@@ -44,19 +45,22 @@ Shared types, constants, and (future) plugin API. This is the **contract layer**
 
 Hono-based REST API server with SQLite persistence via Drizzle ORM.
 
-| Directory              | Purpose                                                      |
-| ---------------------- | ------------------------------------------------------------ |
-| `src/app.ts`           | Hono app with route registrations (pure — no side effects)   |
-| `src/index.ts`         | Server entry point — calls `serve()` (not imported by tests) |
-| `src/db/schema.ts`     | Drizzle ORM table definitions                                |
-| `src/db/connection.ts` | Database connection factory                                  |
-| `src/db/index.ts`      | DB barrel export                                             |
-| `src/routes/`          | API route handlers (planned)                                 |
-| `src/services/`        | Business logic layer (planned)                               |
-| `src/plugin-runtime/`  | Server-side plugin loader (planned)                          |
-| `drizzle/`             | Generated migration files (gitignored from lint)             |
-| `drizzle.config.ts`    | Drizzle Kit configuration                                    |
-| `data/`                | SQLite database files (gitignored)                           |
+| Directory              | Purpose                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/app.ts`           | Hono app factory — `createApp(db?)` with all route registrations                                  |
+| `src/index.ts`         | Server entry — boots DB, runs migrations, calls `serve()`                                         |
+| `src/db/schema/`       | Drizzle ORM table definitions (persons, places, relationships, sources, citations, events, media) |
+| `src/db/connection.ts` | Database connection factory (`createDb()`)                                                        |
+| `src/db/db-helpers.ts` | Shared query helpers (`mustGet()`, `countRows()`)                                                 |
+| `src/db/seed.ts`       | Seed script — 16-person, 4-generation family (74 rows)                                            |
+| `src/middleware/`      | Global error handler middleware                                                                   |
+| `src/utils/`           | API response helpers (`apiSuccess()`, `apiError()`)                                               |
+| `src/services/`        | Business logic layer (person, place, source, relationship)                                        |
+| `src/routes/`          | API route handlers (persons, places, sources, citations, relationships)                           |
+| `src/plugin-runtime/`  | Server-side plugin loader (planned)                                                               |
+| `drizzle/`             | Generated migration files (gitignored from lint)                                                  |
+| `drizzle.config.ts`    | Drizzle Kit configuration                                                                         |
+| `data/`                | SQLite database files (gitignored)                                                                |
 
 **Depends on:** `@ahnenbaum/core`
 **Depended on by:** nothing (it's the top of the server dependency chain)
@@ -215,8 +219,16 @@ ahnenbaum/
 │   │       ├── index.ts       ← Barrel export
 │   │       ├── constants.ts   ← APP_NAME, APP_VERSION
 │   │       ├── types.ts       ← HealthStatus
+│   │       ├── result.ts      ← Result<T>, AppError, ErrorCode
 │   │       └── models/
-│   │           └── index.ts   ← Person interface
+│   │           ├── index.ts   ← Model barrel
+│   │           ├── person.ts  ← Person, PersonName, Sex
+│   │           ├── relationship.ts ← Relationship, RelationshipType
+│   │           ├── event.ts   ← Event, EventType
+│   │           ├── date.ts    ← GenealogyDate (discriminated union)
+│   │           ├── place.ts   ← Place (hierarchical)
+│   │           ├── source.ts  ← Source, Citation
+│   │           └── media.ts   ← Media, MediaLink
 │   ├── server/                ← @ahnenbaum/server
 │   │   ├── package.json
 │   │   ├── tsconfig.json
@@ -225,13 +237,39 @@ ahnenbaum/
 │   │   ├── .env.example
 │   │   ├── drizzle/           ← Generated migrations
 │   │   └── src/
-│   │       ├── index.ts       ← Server entry (serve())
-│   │       ├── app.ts         ← Hono app (pure, testable)
-│   │       └── db/
-│   │           ├── schema.ts      ← Drizzle table definitions
-│   │           ├── connection.ts  ← DB connection factory
-│   │           ├── index.ts       ← DB barrel export
-│   │           └── db.test.ts
+│   │       ├── index.ts       ← Server entry (DB + migrate + serve)
+│   │       ├── app.ts         ← createApp(db?) factory
+│   │       ├── db/
+│   │       │   ├── connection.ts  ← createDb() factory
+│   │       │   ├── db-helpers.ts  ← mustGet(), countRows()
+│   │       │   ├── seed.ts        ← 16-person family seed
+│   │       │   ├── seed.test.ts
+│   │       │   ├── db.test.ts
+│   │       │   └── schema/
+│   │       │       ├── index.ts      ← Schema barrel
+│   │       │       ├── persons.ts    ← persons + person_names
+│   │       │       ├── places.ts     ← hierarchical places
+│   │       │       ├── relationships.ts ← typed edges
+│   │       │       ├── sources.ts    ← sources + citations
+│   │       │       ├── events.ts     ← polymorphic events
+│   │       │       └── media.ts      ← media + media_links
+│   │       ├── middleware/
+│   │       │   ├── error-handler.ts
+│   │       │   └── error-handler.test.ts
+│   │       ├── utils/
+│   │       │   ├── api-response.ts
+│   │       │   └── api-response.test.ts
+│   │       ├── services/
+│   │       │   ├── person-service.ts + test
+│   │       │   ├── place-service.ts + test
+│   │       │   ├── source-service.ts + test
+│   │       │   └── relationship-service.ts + test
+│   │       └── routes/
+│   │           ├── persons.ts     ← 8 endpoints
+│   │           ├── places.ts      ← 5 endpoints
+│   │           ├── sources.ts     ← 5 endpoints
+│   │           ├── citations.ts   ← 4 endpoints
+│   │           └── relationships.ts ← 6 endpoints
 │   ├── client/                ← @ahnenbaum/client
 │   │   ├── package.json
 │   │   ├── tsconfig.json

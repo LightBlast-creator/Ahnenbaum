@@ -42,3 +42,11 @@
 ## Docker: Global npm install not resolvable by node --import
 - `npm install -g tsx` installs outside the project's module resolution scope. `node --import tsx` fails with `ERR_MODULE_NOT_FOUND`.
 - **Fix**: Install tsx as a local dependency (`npm install tsx`) so it's in `node_modules/` and resolvable.
+
+## Drizzle: Avoid `get()!` non-null assertions
+- `db.select().from(table).where(...).get()!` triggers `@typescript-eslint/no-non-null-assertion` (27 errors in Phase 2).
+- **Fix**: Create shared helpers: `mustGet(result)` for post-INSERT reads and `countRows(db, table, where?)` for aggregates. Import from `db/db-helpers.ts`.
+
+## Hono: `onError` only receives Error instances
+- Hono's `onError` handler receives `Error | HTTPException`. Throwing non-Error values (strings, numbers) causes Hono to re-throw them rather than passing to `onError`.
+- **Fix**: Only test error handler with `Error` subclasses (e.g., `TypeError`, `Error`). Non-Error throws are an anti-pattern anyway.

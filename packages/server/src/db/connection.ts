@@ -28,6 +28,7 @@ export function createDb(url?: string): DbConnection {
 
   const sqlite = new Database(dbPath);
   sqlite.pragma('journal_mode = WAL');
+  sqlite.pragma('foreign_keys = ON');
 
   const db = drizzle({ client: sqlite });
 

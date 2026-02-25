@@ -7,4 +7,44 @@
 
 export { APP_NAME, APP_VERSION } from './constants';
 export type { HealthStatus } from './types';
-export type { Person } from './models/index';
+
+// ── Result types ─────────────────────────────────────────────────────
+export type { Result, AppError, ErrorCode } from './result';
+export { ok, err } from './result';
+
+// ── Domain models ────────────────────────────────────────────────────
+export type {
+  // Date
+  GenealogyDate,
+  DateType,
+  ExactDate,
+  ApproximateDate,
+  RangeDate,
+  BeforeDate,
+  AfterDate,
+  // Person
+  Person,
+  PersonName,
+  PersonNameType,
+  Sex,
+  PrivacyLevel,
+  // Relationship
+  Relationship,
+  RelationshipType,
+  ParentChildRelationshipType,
+  PartnerRelationshipType,
+  // Event
+  Event,
+  EventType,
+  // Place
+  Place,
+  // Source & Citation
+  Source,
+  Citation,
+  CitationConfidence,
+  // Media
+  Media,
+  MediaType,
+  MediaLink,
+  MediaLinkEntityType,
+} from './models/index';

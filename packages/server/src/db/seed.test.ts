@@ -1,39 +1,50 @@
-import { describe, expect, it, afterEach } from 'vitest';
-import { createDb, type DbConnection } from './connection';
-import { seed, type SeedResult } from './seed';
+/**
+ * Seed script integration tests.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import Database from 'better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { seed } from './seed';
+
+function createTestDb() {
+  const sqlite = new Database(':memory:');
+  sqlite.pragma('foreign_keys = ON');
+  const db = drizzle({ client: sqlite });
+  migrate(db, { migrationsFolder: './drizzle' });
+  return db;
+}
 
 describe('seed()', () => {
-  let conn: DbConnection | undefined;
-
-  afterEach(() => {
-    conn?.sqlite.close();
-    conn = undefined;
+  it('runs without throwing on an in-memory DB', async () => {
+    const db = createTestDb();
+    await expect(seed(db)).resolves.not.toThrow();
   });
 
-  it('runs without throwing on an in-memory DB', () => {
-    conn = createDb(':memory:');
-    expect(() => seed(conn as DbConnection)).not.toThrow();
+  it('returns correct counts for all entity types', async () => {
+    const db = createTestDb();
+    const result = await seed(db);
+
+    expect(result.persons).toBe(16);
+    expect(result.relationships).toBe(24);
+    expect(result.events).toBe(22);
+    expect(result.places).toBe(6);
+    expect(result.sources).toBe(3);
+    expect(result.citations).toBe(3);
+    expect(result.media).toBe(0);
   });
 
-  it('returns a summary with all-zero counts', () => {
-    conn = createDb(':memory:');
-    const result: SeedResult = seed(conn as DbConnection);
+  it('is idempotent — running twice produces the same result', async () => {
+    const db = createTestDb();
+    const first = await seed(db);
+    const second = await seed(db);
 
-    expect(result).toEqual({
-      persons: 0,
-      relationships: 0,
-      events: 0,
-      places: 0,
-      sources: 0,
-      media: 0,
-    });
-  });
-
-  it('is idempotent — running twice produces the same result', () => {
-    conn = createDb(':memory:');
-    const first = seed(conn as DbConnection);
-    const second = seed(conn as DbConnection);
-
-    expect(first).toEqual(second);
+    expect(second.persons).toBe(first.persons);
+    expect(second.relationships).toBe(first.relationships);
+    expect(second.events).toBe(first.events);
+    expect(second.places).toBe(first.places);
+    expect(second.sources).toBe(first.sources);
+    expect(second.citations).toBe(first.citations);
   });
 });
