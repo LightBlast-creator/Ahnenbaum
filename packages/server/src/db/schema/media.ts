@@ -34,8 +34,14 @@ export const mediaLinks = sqliteTable(
       enum: ['person', 'event', 'relationship', 'source'],
     }).notNull(),
     linkedEntityId: text('linked_entity_id').notNull(),
+    sortOrder: integer('sort_order'),
+    caption: text('caption'),
+    isPrimary: integer('is_primary', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
-  (table) => [index('idx_media_links_media_id').on(table.mediaId)],
+  (table) => [
+    index('idx_media_links_media_id').on(table.mediaId),
+    index('idx_media_links_entity').on(table.linkedEntityType, table.linkedEntityId),
+  ],
 );
