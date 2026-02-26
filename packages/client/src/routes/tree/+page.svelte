@@ -26,7 +26,8 @@
 
 <style>
   .tree-page {
-    height: calc(100vh - var(--header-height));
+    flex: 1;
+    min-height: 0;
     margin: calc(-1 * var(--space-6));
   }
 </style>
