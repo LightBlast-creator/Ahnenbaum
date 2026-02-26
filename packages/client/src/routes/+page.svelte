@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
   import { base } from '$app/paths';
+  import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
 </script>
 
 <svelte:head>
@@ -56,6 +57,10 @@
         <span class="action-label">{m.dashboard_view_tree()}</span>
       </a>
     </div>
+  </section>
+
+  <section class="dashboard-plugins">
+    <PluginSlot slot="dashboard.widget" />
   </section>
 </div>
 

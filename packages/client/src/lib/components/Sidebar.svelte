@@ -2,6 +2,7 @@
   import * as m from '$lib/paraglide/messages';
   import { page } from '$app/state';
   import { base } from '$app/paths';
+  import PluginNav from '$lib/components/PluginNav.svelte';
 
   let { collapsed = false, onToggle }: { collapsed: boolean; onToggle: () => void } = $props();
 
@@ -87,6 +88,10 @@
         {/if}
       </a>
     {/each}
+
+    {#if !collapsed}
+      <PluginNav />
+    {/if}
   </nav>
 
   <button

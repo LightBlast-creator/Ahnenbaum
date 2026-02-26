@@ -17,6 +17,7 @@
   import MediaGallery from '$lib/components/media/MediaGallery.svelte';
   import MediaViewer from '$lib/components/media/MediaViewer.svelte';
   import Toast from '$lib/components/Toast.svelte';
+  import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
   import type { Sex, EventType, GenealogyDate } from '@ahnenbaum/core';
 
   const personId = $derived(page.params.id ?? '');
@@ -270,6 +271,7 @@
             onItemClick={openPersonMediaViewer}
           />
         </div>
+        <PluginSlot slot="person.detail.tab" context={{ personId }} />
       </div>
       <aside class="person-sidebar">
         <RelationshipList {relationships} />
@@ -279,6 +281,8 @@
             🌳 {m.nav_tree()}
           </a>
         </div>
+
+        <PluginSlot slot="person.detail.sidebar" context={{ personId }} />
       </aside>
     </div>
   </div>
