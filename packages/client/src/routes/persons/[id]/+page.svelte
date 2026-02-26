@@ -14,6 +14,8 @@
   import EventList from '$lib/components/EventList.svelte';
   import EventForm from '$lib/components/EventForm.svelte';
   import RelationshipList from '$lib/components/RelationshipList.svelte';
+  import MediaGallery from '$lib/components/media/MediaGallery.svelte';
+  import MediaViewer from '$lib/components/media/MediaViewer.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import type { Sex, EventType, GenealogyDate } from '@ahnenbaum/core';
 
@@ -56,6 +58,80 @@
   // ── Toast ──
   let toastMessage = $state('');
   let toastType: 'success' | 'error' = $state('success');
+
+  // ── Media ──
+  const API_BASE = '/api';
+  interface PersonMediaLink {
+    id: string;
+    isPrimary: boolean | null;
+    caption: string | null;
+    sortOrder: number | null;
+  }
+  interface PersonMediaItem {
+    id: string;
+    type: string;
+    originalFilename: string;
+    mimeType: string;
+    caption: string | null;
+    description: string | null;
+    date: string | null;
+    size: number;
+  }
+  let personMediaItems = $state<{ link: PersonMediaLink; media: PersonMediaItem }[]>([]);
+  let selectedMedia = $state<PersonMediaItem | null>(null);
+  let viewerOpen = $state(false);
+
+  async function loadPersonMedia() {
+    if (!personId) return;
+    try {
+      const res = await fetch(`${API_BASE}/media-links/entity/person/${personId}`);
+      const json = await res.json();
+      if (json.ok) personMediaItems = json.data;
+    } catch {
+      personMediaItems = [];
+    }
+  }
+
+  $effect(() => {
+    if (personId) loadPersonMedia();
+  });
+
+  async function handlePersonMediaUpload(files: File[]) {
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch(`${API_BASE}/media`, { method: 'POST', body: formData });
+        const json = await res.json();
+        if (json.ok) {
+          // Auto-link to this person
+          await fetch(`${API_BASE}/media-links`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mediaId: json.data.id,
+              entityType: 'person',
+              entityId: personId,
+            }),
+          });
+          toastMessage = m.toast_media_uploaded();
+          toastType = 'success';
+        }
+      } catch {
+        toastMessage = m.toast_error();
+        toastType = 'error';
+      }
+    }
+    loadPersonMedia();
+  }
+
+  function openPersonMediaViewer(mediaId: string) {
+    const item = personMediaItems.find((it) => it.media.id === mediaId);
+    if (item) {
+      selectedMedia = item.media;
+      viewerOpen = true;
+    }
+  }
 
   function startEdit() {
     if (!person) return;
@@ -186,6 +262,14 @@
             + {m.event_add()}
           </button>
         {/if}
+
+        <div class="person-media-section">
+          <MediaGallery
+            items={personMediaItems}
+            onUpload={handlePersonMediaUpload}
+            onItemClick={openPersonMediaViewer}
+          />
+        </div>
       </div>
       <aside class="person-sidebar">
         <RelationshipList {relationships} />
@@ -204,6 +288,8 @@
     <a href="{base}/persons">{m.error_go_back()}</a>
   </div>
 {/if}
+
+<MediaViewer bind:open={viewerOpen} media={selectedMedia} />
 
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 

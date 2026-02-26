@@ -62,3 +62,11 @@
 ## Svelte 5: TreeCanvas interactive div pattern
 - `<div>` with `role="application"` + mouse event handlers is valid a11y (interactive canvas), but svelte-check still warns about non-interactive element interactions.
 - **Fix**: Add `<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->`. The `role="application"` makes the div semantically interactive.
+
+## Security: Always sanitize user-provided filenames in storage paths
+- Using `path.join(base, id, filename)` with user-uploaded filenames allows path traversal (e.g., `../../etc/passwd`).
+- **Fix**: Pass all filenames through `path.basename()` to strip directory components before constructing paths. Add a `sanitizeFilename()` helper.
+
+## Node.js: Don't use async imports in synchronous factory functions
+- `createLocalStorage()` used `import('node:fs').then(fs => fs.mkdirSync(...))` which is async but the function returned synchronously — the mkdir could complete after the adapter is already used.
+- **Fix**: Use synchronous `mkdirSync()` for startup-time operations. Only use dynamic `import()` when async context is available.
