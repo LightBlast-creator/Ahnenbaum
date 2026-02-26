@@ -21,7 +21,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "dev": "echo \"Use 'npm run dev' in packages/server or packages/client\"",
-    "clean": "rm -rf packages/*/dist packages/*/node_modules packages/*/.svelte-kit node_modules"
+    "clean": "npx -y rimraf packages/*/dist packages/*/node_modules packages/*/.svelte-kit node_modules"
   },
   "lint-staged": {
     "*.{ts,js,svelte}": [
