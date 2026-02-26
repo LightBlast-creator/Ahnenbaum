@@ -1,0 +1,11 @@
+{
+  "name": "hello-world",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Ahnenbaum plugin example",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@ahnenbaum/core": "*"
+  }
+}
