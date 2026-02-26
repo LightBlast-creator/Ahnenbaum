@@ -1,29 +1,22 @@
+# Production docker-compose — single-container Ahnenbaum
 services:
-  server:
+  ahnenbaum:
     build:
       context: .
-      target: server
+      target: prod
     ports:
       - '3000:3000'
     volumes:
       - db-data:/app/packages/server/data
-      - media:/app/media
+      - media:/app/packages/server/data/media
     environment:
       - PORT=3000
+      - NODE_ENV=production
       - DATABASE_URL=/app/packages/server/data/ahnenbaum.db
-    restart: unless-stopped
-
-  client:
-    build:
-      context: .
-      target: client
-    ports:
-      - '3001:3001'
-    environment:
-      - PORT=3001
-      - ORIGIN=http://localhost:3001
-    depends_on:
-      - server
+      - AUTH_MODE=single-user
+      - LOG_LEVEL=info
+      - BACKUP_INTERVAL_HOURS=24
+      - BACKUP_RETAIN_COUNT=7
     restart: unless-stopped
 
 volumes:
