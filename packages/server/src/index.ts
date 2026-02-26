@@ -25,7 +25,7 @@ const pluginDir = process.env.PLUGIN_DIR ?? resolve(__dirname, '../../plugins');
 
 // ── Create app and start server ──────────────────────────────────────
 const app = createApp(db, undefined, pluginManager);
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 3900;
 
 async function boot() {
   // Load plugins (non-blocking — server starts even if plugins fail)

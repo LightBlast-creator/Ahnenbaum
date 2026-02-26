@@ -24,6 +24,9 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    port: 5900,
+  },
   test: {
     include: ['src/**/*.test.ts'],
   },
