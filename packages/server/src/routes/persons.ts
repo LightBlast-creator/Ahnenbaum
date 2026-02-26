@@ -16,13 +16,14 @@ import { Hono } from 'hono';
 import { apiSuccess, apiError } from '../utils/api-response';
 import * as personService from '../services/person-service';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import type { EventBus } from '../plugin-runtime/event-bus';
 
 /**
  * Create person routes.
  *
  * The DB instance is injected so tests can provide an in-memory database.
  */
-export function createPersonRoutes(db: BetterSQLite3Database): Hono {
+export function createPersonRoutes(db: BetterSQLite3Database, eventBus?: EventBus): Hono {
   const router = new Hono();
 
   // POST /api/persons
@@ -30,6 +31,7 @@ export function createPersonRoutes(db: BetterSQLite3Database): Hono {
     const body = await c.req.json();
     const result = personService.createPerson(db, body);
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('person.created', { personId: result.data.id, person: { ...result.data } });
     return apiSuccess(c, result.data, 201);
   });
 
@@ -56,6 +58,11 @@ export function createPersonRoutes(db: BetterSQLite3Database): Hono {
     const body = await c.req.json();
     const result = personService.updatePerson(db, id, body);
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('person.updated', {
+      personId: id,
+      person: { ...result.data },
+      changes: body as Record<string, unknown>,
+    });
     return apiSuccess(c, result.data);
   });
 
@@ -64,6 +71,7 @@ export function createPersonRoutes(db: BetterSQLite3Database): Hono {
     const id = c.req.param('id');
     const result = personService.deletePerson(db, id);
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('person.deleted', { personId: id });
     return apiSuccess(c, null, 204);
   });
 

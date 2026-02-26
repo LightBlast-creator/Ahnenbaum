@@ -6,14 +6,19 @@ import { Hono } from 'hono';
 import { apiSuccess, apiError } from '../utils/api-response';
 import * as relService from '../services/relationship-service';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import type { EventBus } from '../plugin-runtime/event-bus';
 
-export function createRelationshipRoutes(db: BetterSQLite3Database): Hono {
+export function createRelationshipRoutes(db: BetterSQLite3Database, eventBus?: EventBus): Hono {
   const router = new Hono();
 
   router.post('/', async (c) => {
     const body = await c.req.json();
     const result = relService.createRelationship(db, body);
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('relationship.created', {
+      relationshipId: result.data.id,
+      relationship: { ...result.data },
+    });
     return apiSuccess(c, result.data, 201);
   });
 
@@ -48,6 +53,7 @@ export function createRelationshipRoutes(db: BetterSQLite3Database): Hono {
   router.delete('/:id', (c) => {
     const result = relService.deleteRelationship(db, c.req.param('id'));
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('relationship.deleted', { relationshipId: c.req.param('id') });
     return apiSuccess(c, null, 204);
   });
 

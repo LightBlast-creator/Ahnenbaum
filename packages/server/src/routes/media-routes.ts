@@ -16,13 +16,18 @@ import * as mediaService from '../services/media-service';
 import type { StorageAdapter } from '../storage/local-storage';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { MediaType } from '@ahnenbaum/core';
+import type { EventBus } from '../plugin-runtime/event-bus';
 
 /**
  * Create media routes.
  *
  * Accepts both a database and storage adapter for testability.
  */
-export function createMediaRoutes(db: BetterSQLite3Database, storage: StorageAdapter): Hono {
+export function createMediaRoutes(
+  db: BetterSQLite3Database,
+  storage: StorageAdapter,
+  eventBus?: EventBus,
+): Hono {
   const router = new Hono();
 
   // POST /api/media — upload a file
@@ -51,6 +56,7 @@ export function createMediaRoutes(db: BetterSQLite3Database, storage: StorageAda
     });
 
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('media.uploaded', { mediaId: result.data.id, media: result.data });
     return apiSuccess(c, result.data, 201);
   });
 
@@ -131,6 +137,7 @@ export function createMediaRoutes(db: BetterSQLite3Database, storage: StorageAda
     const id = c.req.param('id');
     const result = await mediaService.deleteMedia(db, storage, id);
     if (!result.ok) return apiError(c, result.error);
+    eventBus?.emit('media.deleted', { mediaId: id });
     return apiSuccess(c, null, 204);
   });
 
