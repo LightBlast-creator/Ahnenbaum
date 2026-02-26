@@ -48,3 +48,24 @@ export type {
   MediaLink,
   MediaLinkEntityType,
 } from './models/index';
+
+// ── Auth types ───────────────────────────────────────────────────────
+export type { AuthMode, UserRole, Session } from './models/auth';
+
+// ── Plugin API ───────────────────────────────────────────────────────
+export type {
+  AhnenbaumPlugin,
+  PluginMetadata,
+  PluginStatus,
+  PluginContext,
+  PluginLogger,
+  HookName,
+  HookPayloads,
+  HookRegistration,
+  Disposable,
+  RouteDefinition,
+  RouteMethod,
+  PanelSlot,
+  PanelDefinition,
+  SchemaExtension,
+} from './plugin-api/index';
