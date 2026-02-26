@@ -1108,17 +1108,22 @@ export function updatePerson(id: string, data: UpdatePersonData): PersonWithDeta
   if (idx === -1) return undefined;
 
   const now = new Date().toISOString();
-  persons[idx] = { ...persons[idx], updatedAt: now };
-
-  if (data.sex !== undefined) persons[idx].sex = data.sex;
-  if (data.notes !== undefined) persons[idx].notes = data.notes;
+  persons[idx] = {
+    ...persons[idx],
+    updatedAt: now,
+    ...(data.sex !== undefined && { sex: data.sex }),
+    ...(data.notes !== undefined && { notes: data.notes }),
+  };
 
   // Update name fields on the preferred name
   const nameIdx = personNames.findIndex((n) => n.personId === id && n.isPreferred);
   if (nameIdx !== -1) {
-    if (data.given !== undefined) personNames[nameIdx].given = data.given;
-    if (data.surname !== undefined) personNames[nameIdx].surname = data.surname;
-    personNames[nameIdx].updatedAt = now;
+    personNames[nameIdx] = {
+      ...personNames[nameIdx],
+      updatedAt: now,
+      ...(data.given !== undefined && { given: data.given }),
+      ...(data.surname !== undefined && { surname: data.surname }),
+    };
   }
 
   return enrichPerson(persons[idx]);
