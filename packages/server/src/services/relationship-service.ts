@@ -9,6 +9,7 @@ import type { GenealogyDate } from '@ahnenbaum/core';
 import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 import { relationships } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
+import { now, uuid } from '../db/helpers';
 import { persons } from '../db/schema/persons';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -43,13 +44,6 @@ interface RelationshipRow {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-}
-
-function now(): string {
-  return new Date().toISOString();
-}
-function uuid(): string {
-  return crypto.randomUUID();
 }
 
 // ── Service methods ──────────────────────────────────────────────────

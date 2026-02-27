@@ -7,6 +7,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import { sources, citations } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
+import { now, uuid } from '../db/helpers';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -69,13 +70,6 @@ interface CitationRow {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-}
-
-function now(): string {
-  return new Date().toISOString();
-}
-function uuid(): string {
-  return crypto.randomUUID();
 }
 
 // ── Source methods ───────────────────────────────────────────────────

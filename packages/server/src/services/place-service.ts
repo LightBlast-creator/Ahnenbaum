@@ -7,6 +7,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import { places } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
+import { now, uuid } from '../db/helpers';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -33,16 +34,6 @@ interface PlaceRow {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function now(): string {
-  return new Date().toISOString();
-}
-
-function uuid(): string {
-  return crypto.randomUUID();
 }
 
 /** Walk the parent chain to build the full hierarchy path. */

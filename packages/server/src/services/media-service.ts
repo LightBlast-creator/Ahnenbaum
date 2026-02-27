@@ -11,6 +11,7 @@ import { ok, err, type Result } from '@ahnenbaum/core';
 import type { MediaType } from '@ahnenbaum/core';
 import { media, mediaLinks } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
+import { now, uuid } from '../db/helpers';
 import type { StorageAdapter } from '../storage/local-storage';
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -63,16 +64,6 @@ interface ExifData {
   latitude?: number;
   longitude?: number;
   cameraModel?: string;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function now(): string {
-  return new Date().toISOString();
-}
-
-function uuid(): string {
-  return crypto.randomUUID();
 }
 
 function getMediaType(mimeType: string): MediaType | undefined {

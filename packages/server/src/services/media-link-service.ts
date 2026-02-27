@@ -15,6 +15,7 @@ import { events } from '../db/schema/index';
 import { relationships } from '../db/schema/index';
 import { sources } from '../db/schema/index';
 import { mustGet } from '../db/db-helpers';
+import { now, uuid } from '../db/helpers';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -31,16 +32,6 @@ export interface UpdateMediaLinkInput {
   sortOrder?: number;
   caption?: string;
   isPrimary?: boolean;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function now(): string {
-  return new Date().toISOString();
-}
-
-function uuid(): string {
-  return crypto.randomUUID();
 }
 
 /**
