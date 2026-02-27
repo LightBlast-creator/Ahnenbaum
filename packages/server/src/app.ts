@@ -3,6 +3,10 @@ import type { Session } from '@ahnenbaum/core';
 import { APP_NAME, APP_VERSION } from '@ahnenbaum/core';
 import type { HealthStatus } from '@ahnenbaum/core';
 import { errorHandler } from './middleware/error-handler';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { readFileSync, existsSync } from 'node:fs';
 import { createPersonRoutes } from './routes/persons';
 import { createPlaceRoutes } from './routes/places';
 import { createSourceRoutes } from './routes/sources';
@@ -60,10 +64,6 @@ export function createApp(
     return c.json(response);
   });
 
-  app.get('/', (c) => {
-    return c.text(`${APP_NAME} API — v${APP_VERSION}`);
-  });
-
   // ── Plugin list endpoint ───────────────────────────────────────
   app.get('/api/plugins', (c) => {
     const plugins = pluginManager?.list() ?? [];
@@ -90,6 +90,35 @@ export function createApp(
   if (pluginManager) {
     const pluginRouter = pluginManager.getRouteRegistry().getRouter();
     app.route('/api/plugin-routes', pluginRouter);
+  }
+
+  // ── Client static files (SPA) ──────────────────────────────────
+  const __file = fileURLToPath(import.meta.url);
+  const __dir = dirname(__file);
+  const clientDir = resolve(__dir, '../../client/build');
+  const fallbackPath = resolve(clientDir, '200.html');
+  const hasFallback = existsSync(fallbackPath);
+
+  if (hasFallback) {
+    // Serve static assets (JS, CSS, images)
+    app.use(
+      '*',
+      serveStatic({
+        root: clientDir,
+        rewriteRequestPath: (path) => path,
+      }),
+    );
+
+    // SPA fallback — any unmatched route gets the shell HTML
+    app.get('*', (c) => {
+      const html = readFileSync(fallbackPath, 'utf-8');
+      return c.html(html);
+    });
+  } else {
+    // No client build available — show API info
+    app.get('/', (c) => {
+      return c.text(`${APP_NAME} API — v${APP_VERSION}`);
+    });
   }
 
   return app;
