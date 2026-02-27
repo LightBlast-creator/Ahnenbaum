@@ -2,18 +2,25 @@
   import { page } from '$app/state';
   import { base } from '$app/paths';
   import * as m from '$lib/paraglide/messages';
-  import { api, toPersonWithDetails, type PersonWithDetails } from '$lib/api';
+  import { api, type PersonWithDetails, type RelationshipEntry } from '$lib/api';
+  import type { Event } from '@ahnenbaum/core';
+  import { sexOptions } from '$lib/constants';
   import { formatLifespan } from '$lib/utils/date-format';
+  import {
+    loadPerson as fetchPerson,
+    loadRelationships as fetchRelationships,
+    loadSiblings as fetchSiblings,
+    loadExtendedFamily as fetchExtendedFamily,
+    type ExtendedFamilyData,
+  } from '$lib/person-data';
   import EventList from '$lib/components/EventList.svelte';
   import EventForm from '$lib/components/EventForm.svelte';
   import RelationshipList from '$lib/components/RelationshipList.svelte';
   import AddRelationshipModal from '$lib/components/AddRelationshipModal.svelte';
-  import MediaGallery from '$lib/components/media/MediaGallery.svelte';
-  import MediaViewer from '$lib/components/media/MediaViewer.svelte';
+  import PersonMediaSection from '$lib/components/PersonMediaSection.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
   import type { Sex, EventType, GenealogyDate } from '@ahnenbaum/core';
-  import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 
   const personId = $derived(page.params.id ?? '');
 
@@ -22,127 +29,36 @@
 
   // Async person data
   let person = $state<PersonWithDetails | undefined>(undefined);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let personEvents = $state<any[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let relationships = $state<any[]>([]);
+  let personEvents = $state<Event[]>([]);
+  let relationships = $state<RelationshipEntry[]>([]);
   let siblings = $state<PersonWithDetails[]>([]);
-  type ExtendedFamilyGroup = { person: PersonWithDetails; derivedRelationship: string }[];
-  type ExtendedFamilyData = Record<string, ExtendedFamilyGroup>;
   let extendedFamily = $state<ExtendedFamilyData | null>(null);
   let _loading = $state(true);
 
-  async function loadPerson() {
+  async function loadAllData() {
     if (!personId) return;
     _loading = true;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const raw = await api.get<any>(`persons/${personId}`);
-      person = toPersonWithDetails(raw);
-      personEvents = raw.events ?? [];
-    } catch {
+
+    const result = await fetchPerson(personId);
+    if (result) {
+      person = result.person;
+      personEvents = result.events;
+    } else {
       person = undefined;
       personEvents = [];
     }
+
+    relationships = await fetchRelationships(personId);
+    siblings = await fetchSiblings(personId);
+    extendedFamily = await fetchExtendedFamily(personId);
+
     _loading = false;
-  }
-
-  const PARENT_CHILD_SET = new Set(PARENT_CHILD_TYPES);
-
-  function deriveRole(
-    type: string,
-    rel: { personAId: string; personBId: string },
-    currentPersonId: string,
-  ): 'parent' | 'child' | 'partner' {
-    if (PARENT_CHILD_SET.has(type as Parameters<typeof PARENT_CHILD_SET.has>[0])) {
-      // Convention: personA = parent, personB = child
-      return rel.personBId === currentPersonId ? 'parent' : 'child';
-    }
-    return 'partner';
-  }
-
-  async function loadRelationships() {
-    if (!personId) return;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const grouped = await api.get<Record<string, any[]>>(`relationships/person/${personId}`);
-      // Flatten and enrich each relationship with related person details
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const entries: any[] = [];
-      for (const [type, rels] of Object.entries(grouped)) {
-        for (const rel of rels) {
-          const relatedId = rel.personAId === personId ? rel.personBId : rel.personAId;
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const relatedRaw = await api.get<any>(`persons/${relatedId}`);
-            const relatedPerson = toPersonWithDetails(relatedRaw);
-            entries.push({
-              relationship: rel,
-              relatedPerson,
-              role: deriveRole(type, rel, personId),
-            });
-          } catch {
-            // Skip unresolvable persons
-          }
-        }
-      }
-      relationships = entries;
-    } catch {
-      relationships = [];
-    }
-  }
-
-  async function loadSiblings() {
-    if (!personId) return;
-    try {
-      const siblingIds = await api.get<string[]>(`relationships/person/${personId}/siblings`);
-      const resolved: PersonWithDetails[] = [];
-      for (const id of siblingIds) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const raw = await api.get<any>(`persons/${id}`);
-          resolved.push(toPersonWithDetails(raw));
-        } catch {
-          // Skip unresolvable persons
-        }
-      }
-      siblings = resolved;
-    } catch {
-      siblings = [];
-    }
-  }
-
-  async function loadExtendedFamily() {
-    if (!personId) return;
-    try {
-      // Server returns raw person objects; cast to ServerPersonResponse shape
-      // that toPersonWithDetails expects (safe: same structure, just narrower types)
-      const raw = await api.get<
-        Record<
-          string,
-          { person: Parameters<typeof toPersonWithDetails>[0]; derivedRelationship: string }[]
-        >
-      >(`relationships/person/${personId}/extended`);
-      const transformed: ExtendedFamilyData = {};
-      for (const [key, members] of Object.entries(raw)) {
-        transformed[key] = members.map((member) => ({
-          ...member,
-          person: toPersonWithDetails(member.person),
-        }));
-      }
-      extendedFamily = transformed;
-    } catch {
-      extendedFamily = null;
-    }
   }
 
   $effect(() => {
     void refreshKey;
     if (personId) {
-      loadPerson();
-      loadRelationships();
-      loadSiblings();
-      loadExtendedFamily();
+      loadAllData();
     }
   });
 
@@ -172,78 +88,10 @@
   let toastMessage = $state('');
   let toastType: 'success' | 'error' = $state('success');
 
-  // ── Media ──
-  const API_BASE = '/api';
-  interface PersonMediaLink {
-    id: string;
-    isPrimary: boolean | null;
-    caption: string | null;
-    sortOrder: number | null;
-  }
-  interface PersonMediaItem {
-    id: string;
-    type: string;
-    originalFilename: string;
-    mimeType: string;
-    caption: string | null;
-    description: string | null;
-    date: string | null;
-    size: number;
-  }
-  let personMediaItems = $state<{ link: PersonMediaLink; media: PersonMediaItem }[]>([]);
-  let selectedMedia = $state<PersonMediaItem | null>(null);
-  let viewerOpen = $state(false);
-
-  async function loadPersonMedia() {
-    if (!personId) return;
-    try {
-      const res = await fetch(`${API_BASE}/media-links/entity/person/${personId}`);
-      const json = await res.json();
-      if (json.ok) personMediaItems = json.data;
-    } catch {
-      personMediaItems = [];
-    }
-  }
-
-  $effect(() => {
-    if (personId) loadPersonMedia();
-  });
-
-  async function handlePersonMediaUpload(files: File[]) {
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append('file', file);
-      try {
-        const res = await fetch(`${API_BASE}/media`, { method: 'POST', body: formData });
-        const json = await res.json();
-        if (json.ok) {
-          // Auto-link to this person
-          await fetch(`${API_BASE}/media-links`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              mediaId: json.data.id,
-              entityType: 'person',
-              entityId: personId,
-            }),
-          });
-          toastMessage = m.toast_media_uploaded();
-          toastType = 'success';
-        }
-      } catch {
-        toastMessage = m.toast_error();
-        toastType = 'error';
-      }
-    }
-    loadPersonMedia();
-  }
-
-  function openPersonMediaViewer(mediaId: string) {
-    const item = personMediaItems.find((it) => it.media.id === mediaId);
-    if (item) {
-      selectedMedia = item.media;
-      viewerOpen = true;
-    }
+  // ── Media toast bridge ──
+  function handleMediaToast(message: string, type: 'success' | 'error') {
+    toastMessage = message;
+    toastType = type;
   }
 
   function startEdit() {
@@ -300,13 +148,6 @@
       toastType = 'error';
     }
   }
-
-  const sexOptions: { value: Sex; label: () => string }[] = [
-    { value: 'unknown', label: () => m.person_sex_unknown() },
-    { value: 'male', label: () => m.person_sex_male() },
-    { value: 'female', label: () => m.person_sex_female() },
-    { value: 'intersex', label: () => m.person_sex_intersex() },
-  ];
 </script>
 
 <svelte:head>
@@ -390,23 +231,17 @@
         {#if showEventForm}
           <EventForm onSave={handleAddEvent} onCancel={() => (showEventForm = false)} />
         {:else}
-          <button class="btn-add-event" onclick={() => (showEventForm = true)}>
+          <button class="btn-add-outline" onclick={() => (showEventForm = true)}>
             + {m.event_add()}
           </button>
         {/if}
 
-        <div class="person-media-section">
-          <MediaGallery
-            items={personMediaItems}
-            onUpload={handlePersonMediaUpload}
-            onItemClick={openPersonMediaViewer}
-          />
-        </div>
+        <PersonMediaSection {personId} onToast={handleMediaToast} />
         <PluginSlot slot="person.detail.tab" context={{ personId }} />
       </div>
       <aside class="person-sidebar">
         <RelationshipList {relationships} {siblings} {extendedFamily} />
-        <button class="btn-add-rel" onclick={() => (showRelModal = true)}>
+        <button class="btn-add-outline" onclick={() => (showRelModal = true)}>
           + {m.relationship_add()}
         </button>
 
@@ -426,8 +261,6 @@
     <a href="{base}/persons">{m.error_go_back()}</a>
   </div>
 {/if}
-
-<MediaViewer bind:open={viewerOpen} media={selectedMedia} />
 
 {#if person}
   <AddRelationshipModal
@@ -538,28 +371,6 @@
   .btn-primary,
   .btn-secondary {
     padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    transition: all var(--transition-fast);
-  }
-
-  .btn-primary {
-    background: var(--color-primary);
-    color: var(--color-text-inverse);
-  }
-
-  .btn-primary:hover {
-    background: var(--color-primary-hover);
-  }
-
-  .btn-secondary {
-    background: var(--color-bg-secondary);
-    color: var(--color-text-secondary);
-  }
-
-  .btn-secondary:hover {
-    color: var(--color-text);
   }
 
   .edit-name-row {
@@ -658,7 +469,7 @@
     color: var(--color-text-inverse);
   }
 
-  .btn-add-event {
+  .btn-add-outline {
     margin-top: var(--space-3);
     padding: var(--space-2) var(--space-4);
     border: 1px dashed var(--color-border);
@@ -670,25 +481,7 @@
     text-align: center;
   }
 
-  .btn-add-event:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-    background: var(--color-primary-light);
-  }
-
-  .btn-add-rel {
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-4);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    transition: all var(--transition-fast);
-    width: 100%;
-    text-align: center;
-  }
-
-  .btn-add-rel:hover {
+  .btn-add-outline:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
     background: var(--color-primary-light);

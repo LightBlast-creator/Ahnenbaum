@@ -1,5 +1,8 @@
 /**
- * Person service — business logic for person CRUD and events.
+ * Person service — business logic for person CRUD.
+ *
+ * Event methods (addPersonEvent, updatePersonEvent, deletePersonEvent)
+ * are defined in event-service.ts and re-exported here for backward compat.
  *
  * All methods return Result<T> — no thrown exceptions.
  * Database operations use Drizzle ORM against the schema.
@@ -11,6 +14,11 @@ import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
 import { persons, personNames, events, relationships } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
+import { now, uuid } from '../db/helpers';
+
+// Re-export event service for backward compatibility
+export { addPersonEvent, updatePersonEvent, deletePersonEvent } from './event-service';
+export type { CreateEventInput, UpdateEventInput, EventRow } from './event-service';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -40,23 +48,7 @@ export interface UpdatePersonInput {
   privacy?: string;
 }
 
-export interface CreateEventInput {
-  type: string;
-  date?: GenealogyDate;
-  placeId?: string;
-  description?: string;
-  notes?: string;
-  citationId?: string;
-}
-
-export interface UpdateEventInput {
-  type?: string;
-  date?: GenealogyDate;
-  placeId?: string;
-  description?: string;
-  notes?: string;
-  citationId?: string;
-}
+import type { EventRow } from './event-service';
 
 interface PersonRow {
   id: string;
@@ -79,31 +71,6 @@ interface PersonNameRow {
   isPreferred: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-interface EventRow {
-  id: string;
-  type: string;
-  date: string | null;
-  placeId: string | null;
-  personId: string | null;
-  relationshipId: string | null;
-  description: string | null;
-  notes: string | null;
-  citationId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function now(): string {
-  return new Date().toISOString();
-}
-
-function uuid(): string {
-  return crypto.randomUUID();
 }
 
 // ── Service methods ──────────────────────────────────────────────────
@@ -257,82 +224,7 @@ export function deletePerson(db: BetterSQLite3Database, id: string): Result<void
   return ok(undefined);
 }
 
-// ── Person Events ────────────────────────────────────────────────────
-
-export function addPersonEvent(
-  db: BetterSQLite3Database,
-  personId: string,
-  input: CreateEventInput,
-): Result<EventRow> {
-  const person = db.select().from(persons).where(eq(persons.id, personId)).get();
-  if (!person || person.deletedAt) {
-    return err('NOT_FOUND', `Person with id '${personId}' not found`);
-  }
-
-  const timestamp = now();
-  const eventId = uuid();
-  const eventType = input.type as EventRow['type'];
-
-  db.insert(events)
-    .values({
-      id: eventId,
-      type: eventType as typeof events.$inferInsert.type,
-      date: input.date ? JSON.stringify(input.date) : null,
-      placeId: input.placeId ?? null,
-      personId,
-      relationshipId: null,
-      description: input.description ?? null,
-      notes: input.notes ?? null,
-      citationId: input.citationId ?? null,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    })
-    .run();
-
-  return ok(mustGet(db.select().from(events).where(eq(events.id, eventId)).get()));
-}
-
-export function updatePersonEvent(
-  db: BetterSQLite3Database,
-  personId: string,
-  eventId: string,
-  input: UpdateEventInput,
-): Result<EventRow> {
-  const event = db.select().from(events).where(eq(events.id, eventId)).get();
-  if (!event || event.deletedAt || event.personId !== personId) {
-    return err('NOT_FOUND', `Event with id '${eventId}' not found for person '${personId}'`);
-  }
-
-  db.update(events)
-    .set({
-      ...(input.type !== undefined && { type: input.type as typeof events.$inferInsert.type }),
-      ...(input.date !== undefined && { date: JSON.stringify(input.date) }),
-      ...(input.placeId !== undefined && { placeId: input.placeId }),
-      ...(input.description !== undefined && { description: input.description }),
-      ...(input.notes !== undefined && { notes: input.notes }),
-      ...(input.citationId !== undefined && { citationId: input.citationId }),
-      updatedAt: now(),
-    })
-    .where(eq(events.id, eventId))
-    .run();
-
-  return ok(mustGet(db.select().from(events).where(eq(events.id, eventId)).get()));
-}
-
-export function deletePersonEvent(
-  db: BetterSQLite3Database,
-  personId: string,
-  eventId: string,
-): Result<void> {
-  const event = db.select().from(events).where(eq(events.id, eventId)).get();
-  if (!event || event.deletedAt || event.personId !== personId) {
-    return err('NOT_FOUND', `Event with id '${eventId}' not found for person '${personId}'`);
-  }
-
-  db.update(events).set({ deletedAt: now(), updatedAt: now() }).where(eq(events.id, eventId)).run();
-
-  return ok(undefined);
-}
+// Person event methods are in event-service.ts, re-exported at the top of this file.
 
 // ── Enriched list ───────────────────────────────────────────────────
 
