@@ -34,6 +34,10 @@ const HTTP_STATUS_MAP: Record<ErrorCode, number> = {
  * @param status HTTP status code (default 200)
  */
 export function apiSuccess<T>(c: Context, data: T, status: number = 200): Response {
+  // 204 No Content must not include a body — Node's Response constructor rejects it
+  if (status === 204) {
+    return c.body(null, 204);
+  }
   return c.json({ ok: true, data }, status as Parameters<typeof c.json>[1]);
 }
 
