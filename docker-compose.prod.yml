@@ -4,8 +4,11 @@ services:
     build:
       context: .
       target: prod
-    ports:
-      - '127.0.0.1:4200:3000'
+    expose:
+      - '3000'
+    networks:
+      - default
+      - caddy
     volumes:
       - db-data:/app/packages/server/data
       - media:/app/packages/server/data/media
@@ -23,6 +26,11 @@ services:
         max-size: '50m'
         max-file: '5'
     restart: unless-stopped
+
+networks:
+  caddy:
+    name: docker_default
+    external: true
 
 volumes:
   db-data:
