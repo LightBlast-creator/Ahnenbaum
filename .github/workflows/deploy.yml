@@ -25,6 +25,10 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd ~/Ahnenbaum
+            # Pre-deploy safety backup
+            docker compose -f docker-compose.prod.yml exec -T ahnenbaum \
+              node -e "const db=require('better-sqlite3')('/app/packages/server/data/ahnenbaum.db');db.backup('/app/packages/server/data/backups/pre-deploy-'+(new Date().toISOString().replace(/[:.]/g,'-'))+'.db').then(()=>{console.log('Pre-deploy backup done');db.close()})" \
+              || echo 'Skipping pre-deploy backup (container not running)'
             git pull origin main
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f

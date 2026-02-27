@@ -15,8 +15,8 @@ services:
       - DATABASE_URL=/app/packages/server/data/ahnenbaum.db
       - AUTH_MODE=single-user
       - LOG_LEVEL=info
-      - BACKUP_INTERVAL_HOURS=24
-      - BACKUP_RETAIN_COUNT=7
+      - BACKUP_INTERVAL_HOURS=6
+      - BACKUP_RETAIN_COUNT=30
     restart: unless-stopped
 
 volumes:

@@ -103,4 +103,26 @@ export class BackupScheduler {
       }
     }
   }
+
+  /**
+   * Create a safety backup before shutdown.
+   * Times out after 5 seconds so shutdown is never blocked.
+   */
+  async runShutdownBackup(): Promise<string | null> {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `ahnenbaum-shutdown-${timestamp}.db`;
+    const backupPath = join(BACKUP_DIR, filename);
+
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Shutdown backup timed out (5s)')), 5000),
+      );
+      await Promise.race([this.sqlite.backup(backupPath), timeout]);
+      logger.info(`Shutdown backup created: ${filename}`);
+      return backupPath;
+    } catch (err) {
+      logger.error('Shutdown backup failed', { error: String(err) });
+      return null;
+    }
+  }
 }

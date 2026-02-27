@@ -63,6 +63,9 @@ async function boot() {
 
     backupScheduler.stop();
 
+    // Create a safety snapshot before going down
+    await backupScheduler.runShutdownBackup();
+
     try {
       await pluginManager.deactivateAll();
     } catch (err) {
