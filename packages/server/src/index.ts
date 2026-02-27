@@ -19,17 +19,19 @@ process.on('uncaughtException', (err) => {
   console.error('[Server] Uncaught exception:', err);
 });
 
+// ── Resolve paths relative to this file (works in Docker + local) ────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // ── Boot database ────────────────────────────────────────────────────
 const { db, sqlite } = createDb();
-migrate(db, { migrationsFolder: './drizzle' });
+migrate(db, { migrationsFolder: resolve(__dirname, '../drizzle') });
 
 // ── Initialize plugin system ─────────────────────────────────────────
 const eventBus = new EventBus();
 const routeRegistry = new PluginRouteRegistry();
 const pluginManager = new PluginManager(db, sqlite, eventBus, routeRegistry);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const pluginDir = process.env.PLUGIN_DIR ?? resolve(__dirname, '../../plugins');
 
 // ── Create app and start server ──────────────────────────────────────
