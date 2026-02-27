@@ -3,7 +3,12 @@
   import { resolveRoute } from '$app/paths';
   import { page } from '$app/state';
   import * as m from '$lib/paraglide/messages';
-  import { api, toPersonWithDetails } from '$lib/api';
+  import {
+    api,
+    toPersonWithDetails,
+    type ServerTreeNode,
+    type ServerPersonResponse,
+  } from '$lib/api';
   import TreeCanvas from '$lib/components/TreeCanvas.svelte';
   import { layoutAncestorTree } from '$lib/utils/tree-layout';
   import type { TreeData } from '$lib/utils/tree-layout';
@@ -17,8 +22,7 @@
   let loading = $state(true);
 
   // Transform server TreeNodeResponse into client TreeData (for ancestor mode)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function toTreeData(node: any): TreeData {
+  function toTreeData(node: ServerTreeNode): TreeData {
     return {
       person: toPersonWithDetails(node.person),
       parents: (node.parents ?? []).map(toTreeData),
@@ -30,7 +34,7 @@
     try {
       if (rootIdParam) {
         // ─── Ancestor pedigree mode ───
-        const serverTree = await api.get<unknown>(`tree/${rootIdParam}`, { generations: 4 });
+        const serverTree = await api.get<ServerTreeNode>(`tree/${rootIdParam}`, { generations: 4 });
         if (serverTree) {
           const treeData = toTreeData(serverTree);
           const positioned = layoutAncestorTree(treeData);
@@ -65,8 +69,9 @@
         }>('tree/full');
 
         if (fullTree) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const persons = (fullTree.persons as any[]).map((p) => toPersonWithDetails(p));
+          const persons = (fullTree.persons as ServerPersonResponse[]).map((p) =>
+            toPersonWithDetails(p),
+          );
           const layout = layoutFamilyGraph(persons, fullTree.relationships);
           nodes = layout.nodes;
           connections = layout.connections;
@@ -99,9 +104,9 @@
 
 <div class="tree-page">
   {#if loading}
-    <div class="tree-status">Loading…</div>
+    <div class="tree-status">{m.loading()}</div>
   {:else if nodes.length === 0}
-    <div class="tree-status">No persons in the family tree yet.</div>
+    <div class="tree-status">{m.tree_empty()}</div>
   {:else}
     <TreeCanvas {nodes} {connections} onPersonClick={handlePersonClick} />
   {/if}

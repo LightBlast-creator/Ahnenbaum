@@ -145,6 +145,37 @@ async function request<T>(
   throw new NetworkError('Network request failed');
 }
 
+/**
+ * Like request(), but sends FormData (for file uploads).
+ * Does NOT set Content-Type — the browser auto-sets the multipart boundary.
+ */
+async function requestFormData<T>(path: string, formData: FormData): Promise<T> {
+  const url = `${API_BASE}/${path}`;
+
+  // File uploads are not idempotent — no retries
+  try {
+    const res = await fetch(url, { method: 'POST', body: formData });
+
+    const { markOnline } = await import('./connection');
+    markOnline();
+
+    if (res.status === 204) return undefined as T;
+
+    const json: ApiResponse<T> = await res.json();
+    if (!json.ok) {
+      const err = (json as ApiErrorResponse).error;
+      throw new ApiError(res.status, err.code, err.message, err.details);
+    }
+    return json.data;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+
+    const { markDisconnected } = await import('./connection');
+    markDisconnected();
+    throw new NetworkError(err instanceof Error ? err.message : 'Network request failed');
+  }
+}
+
 // ── Public API ──────────────────────────────────────────────────────
 
 export const api = {
@@ -162,6 +193,10 @@ export const api = {
 
   del(path: string): Promise<undefined> {
     return request<undefined>('DELETE', path);
+  },
+
+  postFormData<T>(path: string, formData: FormData): Promise<T> {
+    return requestFormData<T>(path, formData);
   },
 };
 
@@ -233,7 +268,7 @@ export interface SearchableItem {
 // ── Transform helpers ───────────────────────────────────────────────
 // Transform server response shapes into frontend PersonWithDetails.
 
-interface ServerPersonResponse {
+export interface ServerPersonResponse {
   id: string;
   sex: Sex;
   notes: string | null;
@@ -258,7 +293,7 @@ interface ServerPersonNameResponse {
   updatedAt: string;
 }
 
-interface ServerEventResponse {
+export interface ServerEventResponse {
   id: string;
   type: string;
   date: string | null;
@@ -335,3 +370,57 @@ export function toPersonWithDetails(
 
 // ── Re-export core types for convenience ────────────────────────────
 export type { Person, PersonName, Event, Place, Relationship, GenealogyDate, Sex };
+
+// ── Media types ─────────────────────────────────────────────────────
+
+/** Media-link metadata as returned by the API. */
+export interface PersonMediaLink {
+  id: string;
+  isPrimary: boolean | null;
+  caption: string | null;
+  sortOrder: number | null;
+}
+
+/** Media-item metadata as returned by the API. */
+export interface PersonMediaItem {
+  id: string;
+  type: string;
+  originalFilename: string;
+  mimeType: string;
+  caption: string | null;
+  description: string | null;
+  date: string | null;
+  size: number;
+}
+
+// ── Relationship types ──────────────────────────────────────────────
+
+/** Relationship row as returned by the server API. */
+export interface RelationshipRow {
+  id: string;
+  personAId: string;
+  personBId: string;
+  type: string;
+  startDate: string | null;
+  endDate: string | null;
+  placeId: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+/** Enriched relationship entry for UI rendering. */
+export interface RelationshipEntry {
+  relationship: RelationshipRow;
+  relatedPerson: PersonWithDetails;
+  role: 'parent' | 'child' | 'partner';
+}
+
+// ── Tree types ──────────────────────────────────────────────────────
+
+/** Tree node as returned by the server API (recursive). */
+export interface ServerTreeNode {
+  person: ServerPersonResponse;
+  parents: ServerTreeNode[];
+}

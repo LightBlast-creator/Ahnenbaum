@@ -146,5 +146,7 @@
   "toast_relationship_error": "Beziehung konnte nicht erstellt werden",
   "connection_reconnecting": "Server wird neu gestartet, verbinde…",
   "connection_offline": "Server nicht erreichbar",
-  "connection_restored": "Verbindung wiederhergestellt"
+  "connection_restored": "Verbindung wiederhergestellt",
+  "loading": "Laden…",
+  "tree_empty": "Noch keine Personen im Stammbaum."
 }

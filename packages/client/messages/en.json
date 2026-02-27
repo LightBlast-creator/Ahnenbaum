@@ -146,5 +146,7 @@
   "toast_relationship_error": "Failed to create relationship",
   "connection_reconnecting": "Server is restarting, reconnecting…",
   "connection_offline": "Server unreachable",
-  "connection_restored": "Connection restored"
+  "connection_restored": "Connection restored",
+  "loading": "Loading…",
+  "tree_empty": "No persons in the family tree yet."
 }

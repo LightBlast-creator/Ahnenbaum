@@ -2,14 +2,7 @@
   import * as m from '$lib/paraglide/messages';
   import { base } from '$app/paths';
   import { formatLifespan } from '$lib/utils/date-format';
-  import type { PersonWithDetails } from '$lib/api';
-  import type { Relationship } from '@ahnenbaum/core';
-
-  interface RelationshipEntry {
-    relationship: Relationship;
-    relatedPerson: PersonWithDetails;
-    role: 'parent' | 'child' | 'partner';
-  }
+  import type { PersonWithDetails, RelationshipEntry } from '$lib/api';
 
   let {
     relationships,

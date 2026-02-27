@@ -5,9 +5,10 @@
     api,
     toPersonWithDetails,
     type PersonWithDetails,
+    type ServerPersonResponse,
     type GetPersonsOptions,
   } from '$lib/api';
-  import { formatLifespan } from '$lib/utils/date-format';
+  import { formatLifespan, extractYear } from '$lib/utils/date-format';
   import Toast from '$lib/components/Toast.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
@@ -50,12 +51,10 @@
     try {
       // Fetch a generous page to enable client-side sort/filter
       const data = await api.get<{
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        persons: Array<any>;
+        persons: ServerPersonResponse[];
         total: number;
       }>('persons', { page: 1, limit: 200 });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      allPersons = data.persons.map((p: any) => toPersonWithDetails(p));
+      allPersons = data.persons.map((p) => toPersonWithDetails(p));
     } catch {
       allPersons = [];
     }
@@ -89,16 +88,14 @@
     const dir = sortDir === 'desc' ? -1 : 1;
     filtered = [...filtered].sort((a, b) => {
       if (sortBy === 'birth') {
-        return (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dir * ((a.birthEvent?.date as any)?.year ?? 0) - ((b.birthEvent?.date as any)?.year ?? 0)
-        );
+        const yearA = parseInt(extractYear(a.birthEvent?.date), 10) || 0;
+        const yearB = parseInt(extractYear(b.birthEvent?.date), 10) || 0;
+        return dir * (yearA - yearB);
       }
       if (sortBy === 'death') {
-        return (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dir * ((a.deathEvent?.date as any)?.year ?? 0) - ((b.deathEvent?.date as any)?.year ?? 0)
-        );
+        const yearA = parseInt(extractYear(a.deathEvent?.date), 10) || 0;
+        const yearB = parseInt(extractYear(b.deathEvent?.date), 10) || 0;
+        return dir * (yearA - yearB);
       }
       // Default: by name
       const nameA = `${a.preferredName.surname} ${a.preferredName.given}`.toLowerCase();

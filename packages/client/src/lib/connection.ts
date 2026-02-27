@@ -5,7 +5,7 @@
  * for the API client to signal connectivity changes.
  */
 
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -64,12 +64,7 @@ export function markOnline(): void {
   stopPolling();
 
   // Only fire 'online' if we were disconnected (avoids unnecessary updates)
-  let wasDisconnected = false;
-  _status.subscribe((s) => {
-    wasDisconnected = s !== 'online';
-  })();
-
-  if (wasDisconnected) {
+  if (get(_status) !== 'online') {
     _status.set('online');
   }
 

@@ -39,3 +39,6 @@ coverage/
 
 # Misc
 *.tgz
+
+# Code review reports
+REVIEW_CLEAN.md
