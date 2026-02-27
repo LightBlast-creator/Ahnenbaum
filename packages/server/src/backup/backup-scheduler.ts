@@ -30,9 +30,20 @@ export class BackupScheduler {
    */
   start(): void {
     // Run initial backup after a short delay
-    setTimeout(() => this.runBackup(), 5000);
+    setTimeout(() => {
+      this.runBackup().catch((err) => {
+        logger.error('Backup failed (initial)', { error: String(err) });
+      });
+    }, 5000);
 
-    this.timer = setInterval(() => this.runBackup(), INTERVAL_HOURS * 60 * 60 * 1000);
+    this.timer = setInterval(
+      () => {
+        this.runBackup().catch((err) => {
+          logger.error('Backup failed (scheduled)', { error: String(err) });
+        });
+      },
+      INTERVAL_HOURS * 60 * 60 * 1000,
+    );
 
     logger.info(`Backup scheduler started`, {
       interval_hours: INTERVAL_HOURS,

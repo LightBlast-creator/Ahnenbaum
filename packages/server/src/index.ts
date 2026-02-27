@@ -10,6 +10,15 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BackupScheduler } from './backup/backup-scheduler';
 
+// ── Process safety net — log instead of crashing silently ────────────
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught exception:', err);
+});
+
 // ── Boot database ────────────────────────────────────────────────────
 const { db, sqlite } = createDb();
 migrate(db, { migrationsFolder: './drizzle' });
