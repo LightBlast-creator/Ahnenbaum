@@ -219,7 +219,8 @@ export function getSiblingsForPerson(
     return err('NOT_FOUND', `Person '${personId}' not found`);
   }
 
-  const parentChildTypes = PARENT_CHILD_TYPES as readonly string[];
+  type RelType = typeof relationships.$inferInsert.type;
+  const parentChildTypes = PARENT_CHILD_TYPES as readonly RelType[];
 
   // Step 1: Find all parents of this person (personB = child = personId)
   const parentRels = db
@@ -229,7 +230,7 @@ export function getSiblingsForPerson(
       and(
         isNull(relationships.deletedAt),
         eq(relationships.personBId, personId),
-        inArray(relationships.type, parentChildTypes as [string, ...string[]]),
+        inArray(relationships.type, parentChildTypes as [RelType, ...RelType[]]),
       ),
     )
     .all();
@@ -245,7 +246,7 @@ export function getSiblingsForPerson(
       and(
         isNull(relationships.deletedAt),
         inArray(relationships.personAId, parentIds as [string, ...string[]]),
-        inArray(relationships.type, parentChildTypes as [string, ...string[]]),
+        inArray(relationships.type, parentChildTypes as [RelType, ...RelType[]]),
       ),
     )
     .all();

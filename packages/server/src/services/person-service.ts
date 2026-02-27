@@ -494,6 +494,7 @@ export function getFullFamilyTree(db: BetterSQLite3Database): Result<FullFamilyT
 
   const eventsByPerson = new Map<string, typeof allEvents>();
   for (const event of allEvents) {
+    if (!event.personId) continue;
     const list = eventsByPerson.get(event.personId) ?? [];
     list.push(event);
     eventsByPerson.set(event.personId, list);

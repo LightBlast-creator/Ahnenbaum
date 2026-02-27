@@ -245,6 +245,7 @@ export function getExtendedFamily(
 
   const eventsByPerson = new Map<string, typeof foundEvents>();
   for (const event of foundEvents) {
+    if (!event.personId) continue;
     const list = eventsByPerson.get(event.personId) ?? [];
     list.push(event);
     eventsByPerson.set(event.personId, list);

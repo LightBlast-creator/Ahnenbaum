@@ -77,7 +77,10 @@ export function maybeCreatePartnerRelationships(
         isNull(relationships.deletedAt),
         inArray(
           relationships.type,
-          AUTO_PARTNER_QUALIFYING_TYPES as unknown as [string, ...string[]],
+          AUTO_PARTNER_QUALIFYING_TYPES as unknown as [
+            typeof relationships.$inferInsert.type,
+            ...(typeof relationships.$inferInsert.type)[],
+          ],
         ),
       ),
     )
