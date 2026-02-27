@@ -3,6 +3,7 @@
   import { resolveRoute } from '$app/paths';
   import * as m from '$lib/paraglide/messages';
   import { api, ApiError, type CreatePersonInput } from '$lib/api';
+  import { sexOptions } from '$lib/constants';
   import DateInput from '$lib/components/DateInput.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import type { GenealogyDate, Sex } from '@ahnenbaum/core';
@@ -133,13 +134,6 @@
       save(false);
     }
   }
-
-  const sexOptions: { value: Sex; label: () => string }[] = [
-    { value: 'unknown', label: () => m.person_sex_unknown() },
-    { value: 'male', label: () => m.person_sex_male() },
-    { value: 'female', label: () => m.person_sex_female() },
-    { value: 'intersex', label: () => m.person_sex_intersex() },
-  ];
 </script>
 
 {#if open}
@@ -247,98 +241,10 @@
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
 <style>
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    padding: var(--space-4);
-    animation: fade-in 150ms ease;
-  }
+  /* Component-specific styles only — shared modal/form/button styles in global CSS */
 
   .modal {
-    background: var(--color-surface);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
-    width: 100%;
     max-width: 520px;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: scale-in 150ms ease;
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-4) var(--space-6);
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .modal-header h2 {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  .modal-close {
-    font-size: var(--font-size-2xl);
-    color: var(--color-text-muted);
-    padding: var(--space-1);
-    line-height: 1;
-  }
-
-  .modal-close:hover {
-    color: var(--color-text);
-  }
-
-  .modal-body {
-    padding: var(--space-6);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-4);
-  }
-
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .form-field label {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-  }
-
-  .form-field input,
-  .form-field select,
-  .form-field textarea {
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    transition: border-color var(--transition-fast);
-  }
-
-  .form-field input:focus,
-  .form-field select:focus,
-  .form-field textarea:focus {
-    border-color: var(--color-primary);
-    outline: none;
-  }
-
-  .form-field textarea {
-    resize: vertical;
   }
 
   .toggle-optional {
@@ -360,74 +266,6 @@
     gap: var(--space-4);
     padding-top: var(--space-2);
     border-top: 1px solid var(--color-border);
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-6);
-    border-top: 1px solid var(--color-border);
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    transition: all var(--transition-fast);
-  }
-
-  .btn-primary {
-    background: var(--color-primary);
-    color: var(--color-text-inverse);
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background: var(--color-primary-hover);
-  }
-
-  .btn-secondary {
-    background: var(--color-bg-secondary);
-    color: var(--color-text-secondary);
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: var(--color-surface-hover);
-    color: var(--color-text);
-  }
-
-  .btn-primary:disabled,
-  .btn-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes scale-in {
-    from {
-      transform: scale(0.95);
-      opacity: 0;
-    }
-    to {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .form-row {
-      grid-template-columns: 1fr;
-    }
   }
 
   .duplicate-warning {
@@ -454,15 +292,5 @@
     padding-left: var(--space-4);
     font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .modal-backdrop {
-      animation: none;
-    }
-
-    .modal {
-      animation: none;
-    }
   }
 </style>
