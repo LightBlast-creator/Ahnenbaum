@@ -78,3 +78,16 @@
 ## Client: Always transform server person shapes before rendering
 - Server returns `PersonWithDetailsRow` (raw `names[]`, `events[]` arrays). UI components expect `PersonWithDetails` (computed `preferredName`, `birthEvent`, `deathEvent`). Passing raw data causes `TypeError: Cannot read properties of undefined (reading 'given')` and crashes the entire person page.
 - **Fix**: Always pipe server person responses through `toPersonWithDetails()` before passing to Svelte components. Never assume server shape matches client shape.
+
+## Hono: `c.json()` with status 204 crashes Node
+- `apiSuccess(c, null, 204)` calls `c.json({ ok: true, data: null }, 204)` — Node's `Response` constructor rejects status 204 with a body (`TypeError: Invalid response status code 204`).
+- **Fix**: Use `c.body(null, 204)` for no-content responses instead of `c.json()`.
+
+## Testing: Always verify actual route paths and response shapes before writing route tests
+- Route factories expose paths relative to where they're mounted. `createTreeRoutes` uses `/full` and `/:id` (not `/pedigree/:id`). `createMediaLinkRoutes` uses `/entity/:type/:id` (not `/?entityType=x`). List endpoints return `{ entities: [...], total }` not flat arrays.
+- **Fix**: Read the actual route file before writing tests. Check `router.get/post/...` patterns and the service return types.
+
+## Core: Use PARENT_CHILD_TYPES enum values in tests, not generic strings
+- `family-graph-layout.ts` checks `PARENT_CHILD_SET.has(edge.type)` — the set contains `'biological_parent'`, `'adoptive_parent'`, etc. Using `'parent-child'` as the edge type in tests causes edges to be treated as partner relationships.
+- **Fix**: Always use actual enum values from `@ahnenbaum/core` (e.g., `'biological_parent'`, `'marriage'`) in test fixtures.
+
