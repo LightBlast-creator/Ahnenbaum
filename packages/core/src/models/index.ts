@@ -20,6 +20,7 @@ export type {
   ParentChildRelationshipType,
   PartnerRelationshipType,
 } from './relationship';
+export { PARENT_CHILD_TYPES } from './relationship';
 export type { Event, EventType } from './event';
 export type { Place } from './place';
 export type { Source, Citation, CitationConfidence } from './source';

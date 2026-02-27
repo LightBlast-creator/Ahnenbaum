@@ -208,4 +208,84 @@ describe('relationshipService', () => {
     if (!updated.ok) return;
     expect(updated.data.type).toBe('marriage');
   });
+
+  // ── Sibling derivation ──
+
+  it('derives siblings from shared parents', () => {
+    const father = createTestPerson(db, 'Hans', 'Sib');
+    const mother = createTestPerson(db, 'Maria', 'Sib');
+    const child1 = createTestPerson(db, 'Anna', 'Sib');
+    const child2 = createTestPerson(db, 'Karl', 'Sib');
+    const child3 = createTestPerson(db, 'Lena', 'Sib');
+
+    // Both parents → all three children
+    for (const child of [child1, child2, child3]) {
+      relService.createRelationship(db, {
+        personAId: father.id,
+        personBId: child.id,
+        type: 'biological_parent',
+      });
+      relService.createRelationship(db, {
+        personAId: mother.id,
+        personBId: child.id,
+        type: 'biological_parent',
+      });
+    }
+
+    const result = relService.getSiblingsForPerson(db, child1.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // child1 should see child2 and child3, NOT themselves, and no duplicates
+    expect(result.data).toHaveLength(2);
+    expect(result.data).toContain(child2.id);
+    expect(result.data).toContain(child3.id);
+    expect(result.data).not.toContain(child1.id);
+  });
+
+  it('includes half-siblings (shared one parent)', () => {
+    const father = createTestPerson(db, 'Hans', 'Half');
+    const mother1 = createTestPerson(db, 'Maria', 'Half');
+    const mother2 = createTestPerson(db, 'Eva', 'Half');
+    const child1 = createTestPerson(db, 'Anna', 'Half');
+    const child2 = createTestPerson(db, 'Karl', 'Half');
+
+    // child1: father + mother1
+    relService.createRelationship(db, {
+      personAId: father.id,
+      personBId: child1.id,
+      type: 'biological_parent',
+    });
+    relService.createRelationship(db, {
+      personAId: mother1.id,
+      personBId: child1.id,
+      type: 'biological_parent',
+    });
+
+    // child2: father + mother2 (half-sibling via father)
+    relService.createRelationship(db, {
+      personAId: father.id,
+      personBId: child2.id,
+      type: 'biological_parent',
+    });
+    relService.createRelationship(db, {
+      personAId: mother2.id,
+      personBId: child2.id,
+      type: 'biological_parent',
+    });
+
+    const result = relService.getSiblingsForPerson(db, child1.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data).toHaveLength(1);
+    expect(result.data).toContain(child2.id);
+  });
+
+  it('returns empty array for person with no parents', () => {
+    const orphan = createTestPerson(db, 'Solo', 'Orphan');
+    const result = relService.getSiblingsForPerson(db, orphan.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data).toHaveLength(0);
+  });
 });

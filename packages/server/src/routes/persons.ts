@@ -39,7 +39,7 @@ export function createPersonRoutes(db: BetterSQLite3Database, eventBus?: EventBu
   router.get('/', (c) => {
     const page = Number(c.req.query('page')) || 1;
     const limit = Number(c.req.query('limit')) || 20;
-    const result = personService.listPersons(db, { page, limit });
+    const result = personService.listPersonsWithDetails(db, { page, limit });
     if (!result.ok) return apiError(c, result.error);
     return apiSuccess(c, result.data);
   });
@@ -82,6 +82,16 @@ export function createPersonRoutes(db: BetterSQLite3Database, eventBus?: EventBu
     const result = personService.addPersonEvent(db, personId, body);
     if (!result.ok) return apiError(c, result.error);
     return apiSuccess(c, result.data, 201);
+  });
+
+  // PATCH /api/persons/:id/names/:nameId
+  router.patch('/:id/names/:nameId', async (c) => {
+    const personId = c.req.param('id');
+    const nameId = c.req.param('nameId');
+    const body = await c.req.json();
+    const result = personService.updatePersonName(db, personId, nameId, body);
+    if (!result.ok) return apiError(c, result.error);
+    return apiSuccess(c, result.data);
   });
 
   // PATCH /api/persons/:id/events/:eventId

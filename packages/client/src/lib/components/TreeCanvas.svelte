@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { SvelteMap } from 'svelte/reactivity';
   import PersonCard from '$lib/components/PersonCard.svelte';
   import TreeControls from '$lib/components/TreeControls.svelte';
-  import { layoutAncestorTree, getTreeBounds, type PositionedNode } from '$lib/utils/tree-layout';
-  import type { TreeData } from '$lib/utils/tree-layout';
+  import { getTreeBounds, type PositionedNode } from '$lib/utils/tree-layout';
+  import type { GraphConnection } from '$lib/utils/family-graph-layout';
 
   let {
-    treeData,
+    nodes,
+    connections,
     onPersonClick,
   }: {
-    treeData: TreeData | undefined;
+    nodes: PositionedNode[];
+    connections: GraphConnection[];
     onPersonClick: (personId: string) => void;
   } = $props();
 
@@ -25,40 +26,18 @@
 
   let containerEl: HTMLDivElement | undefined = $state(undefined);
 
-  const nodes = $derived(layoutAncestorTree(treeData));
   const bounds = $derived(getTreeBounds(nodes));
 
-  // Center the tree on initial load
+  // Center the tree on initial load using actual bounds (works for both modes)
   $effect(() => {
     if (nodes.length > 0 && containerEl) {
       const rect = containerEl.getBoundingClientRect();
-      panX = rect.width / 2;
-      panY = rect.height - 100; // Root near bottom
+      // Center the bounding box of all nodes in the viewport
+      const midX = (bounds.minX + bounds.maxX) / 2;
+      const midY = (bounds.minY + bounds.maxY) / 2;
+      panX = rect.width / 2 - midX;
+      panY = rect.height / 2 - midY;
     }
-  });
-
-  // Generate connection lines between parents and children
-  const connections = $derived.by(() => {
-    const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    const nodeMap = new SvelteMap<string, PositionedNode>();
-    for (const node of nodes) {
-      nodeMap.set(node.person.id, node);
-    }
-
-    for (const node of nodes) {
-      for (const parentId of node.parentIds) {
-        const parent = nodeMap.get(parentId);
-        if (parent) {
-          lines.push({
-            x1: node.x,
-            y1: node.y - 40, // top of child card
-            x2: parent.x,
-            y2: parent.y + 40, // bottom of parent card
-          });
-        }
-      }
-    }
-    return lines;
   });
 
   function handleWheel(event: WheelEvent) {
@@ -68,7 +47,7 @@
   }
 
   function handleMouseDown(event: MouseEvent) {
-    if (event.button !== 0) return; // Left click only
+    if (event.button !== 0) return;
     isPanning = true;
     startMouseX = event.clientX;
     startMouseY = event.clientY;
@@ -101,8 +80,11 @@
     const scaleX = (rect.width - padding * 2) / (bounds.width + 200);
     const scaleY = (rect.height - padding * 2) / (bounds.height + 200);
     scale = Math.min(scaleX, scaleY, 1.5);
-    panX = rect.width / 2;
-    panY = rect.height - 100;
+    // Re-center after scale change
+    const midX = (bounds.minX + bounds.maxX) / 2;
+    const midY = (bounds.minY + bounds.maxY) / 2;
+    panX = rect.width / 2 - midX * scale;
+    panY = rect.height / 2 - midY * scale;
   }
 
   function toggleFullscreen() {
@@ -132,13 +114,25 @@
     <g transform="translate({panX}, {panY}) scale({scale})">
       <!-- Connection lines -->
       {#each connections as conn, i (i)}
-        <path
-          d="M {conn.x1} {conn.y1} C {conn.x1} {(conn.y1 + conn.y2) / 2}, {conn.x2} {(conn.y1 +
-            conn.y2) /
-            2}, {conn.x2} {conn.y2}"
-          class="tree-connection"
-          fill="none"
-        />
+        {#if conn.type === 'partner'}
+          <!-- Partner: straight horizontal dashed line -->
+          <line
+            x1={conn.x1}
+            y1={conn.y1}
+            x2={conn.x2}
+            y2={conn.y2}
+            class="tree-connection partner-connection"
+          />
+        {:else}
+          <!-- Parent-child: cubic bezier curve -->
+          <path
+            d="M {conn.x1} {conn.y1} C {conn.x1} {(conn.y1 + conn.y2) / 2}, {conn.x2} {(conn.y1 +
+              conn.y2) /
+              2}, {conn.x2} {conn.y2}"
+            class="tree-connection"
+            fill="none"
+          />
+        {/if}
       {/each}
 
       <!-- Person cards -->
@@ -185,5 +179,10 @@
   .tree-connection {
     stroke: var(--color-border-hover);
     stroke-width: 2;
+  }
+
+  .partner-connection {
+    stroke-dasharray: 6 4;
+    stroke: var(--color-primary-light);
   }
 </style>

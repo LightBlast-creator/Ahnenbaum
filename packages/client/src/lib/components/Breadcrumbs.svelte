@@ -2,12 +2,44 @@
   import { page } from '$app/state';
   import { base } from '$app/paths';
   import * as m from '$lib/paraglide/messages';
-  import { getPerson } from '$lib/data/mock-data';
+  import { api } from '$lib/api';
 
   interface Crumb {
     label: string;
     href: string;
   }
+
+  // Cache person name for breadcrumb
+  let personName = $state<string | undefined>(undefined);
+  let lastPersonId = $state('');
+
+  $effect(() => {
+    const pathname = page.url.pathname;
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length > 1 && segments[0] === 'persons') {
+      const personId = segments[1];
+      if (personId !== lastPersonId) {
+        lastPersonId = personId;
+        personName = undefined;
+        api
+          .get<{ id: string; names: { given: string; surname: string; isPreferred: boolean }[] }>(
+            `persons/${personId}`,
+          )
+          .then((data) => {
+            const preferred = data.names.find((n) => n.isPreferred) ?? data.names[0];
+            if (preferred) {
+              personName = `${preferred.given} ${preferred.surname}`;
+            }
+          })
+          .catch(() => {
+            personName = undefined;
+          });
+      }
+    } else {
+      lastPersonId = '';
+      personName = undefined;
+    }
+  });
 
   const crumbs = $derived.by((): Crumb[] => {
     const pathname = page.url.pathname;
@@ -29,15 +61,12 @@
     });
 
     // If there's a second segment (e.g., person ID)
-    if (segments.length > 1 && section === 'persons') {
+    if (segments.length > 1 && section === 'persons' && personName) {
       const personId = segments[1];
-      const person = getPerson(personId);
-      if (person) {
-        result.push({
-          label: `${person.preferredName.given} ${person.preferredName.surname}`,
-          href: `/persons/${personId}`,
-        });
-      }
+      result.push({
+        label: personName,
+        href: `/persons/${personId}`,
+      });
     }
 
     return result;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { layoutAncestorTree, getTreeBounds, type TreeData } from './tree-layout';
-import type { PersonWithDetails } from '$lib/data/mock-data';
+import type { PersonWithDetails } from '$lib/api';
 
 function makePerson(id: string, given: string, surname: string): PersonWithDetails {
   return {

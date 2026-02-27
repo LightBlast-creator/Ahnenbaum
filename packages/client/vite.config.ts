@@ -26,6 +26,9 @@ export default defineConfig({
   ],
   server: {
     port: 5900,
+    proxy: {
+      '/api': 'http://localhost:3900',
+    },
   },
   test: {
     include: ['src/**/*.test.ts'],

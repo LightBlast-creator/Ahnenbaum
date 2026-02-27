@@ -263,4 +263,31 @@ describe('personService', () => {
     expect(birthDate.type).toBe('approximate');
     expect(birthDate.date).toBe('1850');
   });
+
+  it('auto-creates birth and death events when dates provided in createPerson', () => {
+    const result = personService.createPerson(db, {
+      names: [{ given: 'Auto', surname: 'Events' }],
+      birthDate: { type: 'exact', date: '1900-06-15' },
+      deathDate: { type: 'approximate', date: '1975' },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // Events should be returned inline
+    expect(result.data.events).toHaveLength(2);
+
+    const birth = result.data.events.find((e) => e.type === 'birth');
+    const death = result.data.events.find((e) => e.type === 'death');
+    expect(birth).toBeDefined();
+    expect(death).toBeDefined();
+
+    const birthDate = JSON.parse(birth?.date ?? '');
+    expect(birthDate.type).toBe('exact');
+    expect(birthDate.date).toBe('1900-06-15');
+
+    const deathDate = JSON.parse(death?.date ?? '');
+    expect(deathDate.type).toBe('approximate');
+    expect(deathDate.date).toBe('1975');
+  });
 });

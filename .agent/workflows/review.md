@@ -52,7 +52,21 @@ Use `grep_search`, `view_file_outline`, and `view_code_item` to spot-check at le
 
 ---
 
-### 4. Risk & Edge Case Scan
+### 4. Optimality & Forward Compatibility
+
+Before proceeding, challenge the core approach:
+
+- [ ] **Is this the simplest solution?** — Could the same result be achieved with fewer moving parts (fewer files, endpoints, abstractions)?
+- [ ] **Are there alternative approaches?** — List at least 2 alternatives and briefly justify why the chosen approach wins
+- [ ] **Shared constants vs duplication** — Are any magic strings, enum values, or config duplicated across packages? Should they be in a shared core?
+- [ ] **Forward compatibility** — If a new variant/type is added to the domain model, does this change degrade gracefully or require shotgun surgery?
+- [ ] **API contract stability** — Does this change existing return types or add new endpoints? New endpoints are preferred over modifying existing ones
+
+If the answer to any check is no, revise the plan before proceeding.
+
+---
+
+### 5. Risk & Edge Case Scan
 
 Ask yourself these questions:
 
@@ -65,7 +79,7 @@ Ask yourself these questions:
 
 ---
 
-### 5. Clarity & Actionability
+### 6. Clarity & Actionability
 
 - [ ] Someone unfamiliar with the codebase could implement this from the plan alone
 - [ ] No vague language ("maybe", "if needed", "consider") — replace with decisions
@@ -75,7 +89,7 @@ Ask yourself these questions:
 
 ---
 
-### 6. Produce Findings Table
+### 7. Produce Findings Table
 
 Append a `## Self-Review Findings` section to the document:
 
@@ -98,7 +112,7 @@ If no issues found, append:
 
 ---
 
-### 7. Update the Plan
+### 8. Update the Plan
 
 Apply all fixes inline in the document. Don't just list findings — actually fix the plan text.
 

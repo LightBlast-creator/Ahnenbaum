@@ -433,7 +433,6 @@
   <AddRelationshipModal
     bind:open={showRelModal}
     currentPersonId={person.id}
-    currentPersonName={person.preferredName.given}
     onSaved={() => {
       refreshKey++;
     }}

@@ -8,7 +8,7 @@
  * Each generation doubles the number of nodes.
  */
 
-import type { PersonWithDetails } from '$lib/data/mock-data';
+import type { PersonWithDetails } from '$lib/api';
 
 export interface PositionedNode {
   person: PersonWithDetails;

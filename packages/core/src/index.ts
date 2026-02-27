@@ -48,6 +48,7 @@ export type {
   MediaLink,
   MediaLinkEntityType,
 } from './models/index';
+export { PARENT_CHILD_TYPES } from './models/index';
 
 // ── Auth types ───────────────────────────────────────────────────────
 export type { AuthMode, UserRole, Session } from './models/auth';

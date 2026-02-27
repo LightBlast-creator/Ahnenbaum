@@ -11,6 +11,7 @@ import { createRelationshipRoutes } from './routes/relationships';
 import { createMediaRoutes } from './routes/media-routes';
 import { createMediaLinkRoutes } from './routes/media-link-routes';
 import { createSearchRoutes } from './routes/search-routes';
+import { createTreeRoutes } from './routes/tree-routes';
 import { LocalStorageAdapter } from './storage/local-storage';
 import type { StorageAdapter } from './storage/local-storage';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
@@ -82,6 +83,7 @@ export function createApp(
     app.route('/api/media', createMediaRoutes(db, mediaStorage, eventBus));
     app.route('/api/media-links', createMediaLinkRoutes(db));
     app.route('/api/search', createSearchRoutes(db));
+    app.route('/api/tree', createTreeRoutes(db));
   }
 
   // Mount plugin routes (separate prefix to avoid conflict with GET /api/plugins)

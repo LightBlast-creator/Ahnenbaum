@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatLifespan } from '$lib/utils/date-format';
-  import type { PersonWithDetails } from '$lib/data/mock-data';
+  import type { PersonWithDetails } from '$lib/api';
 
   let {
     person,

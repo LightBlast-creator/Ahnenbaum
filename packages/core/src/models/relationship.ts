@@ -18,6 +18,16 @@ export type ParentChildRelationshipType =
   | 'guardian'
   | 'godparent';
 
+/** Runtime list of all parent-child relationship types. */
+export const PARENT_CHILD_TYPES: readonly ParentChildRelationshipType[] = [
+  'biological_parent',
+  'adoptive_parent',
+  'step_parent',
+  'foster_parent',
+  'guardian',
+  'godparent',
+] as const;
+
 /** Partner/spouse relationship types. */
 export type PartnerRelationshipType =
   | 'marriage'

@@ -2,10 +2,11 @@
  * Relationship service — typed edge graph management.
  */
 
-import { eq, or, isNull, and } from 'drizzle-orm';
+import { eq, or, isNull, and, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
+import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 import { relationships } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
 import { persons } from '../db/schema/persons';
@@ -206,4 +207,53 @@ export function deleteRelationship(db: BetterSQLite3Database, id: string): Resul
     .where(eq(relationships.id, id))
     .run();
   return ok(undefined);
+}
+
+/** Derive siblings — other children who share at least one parent. */
+export function getSiblingsForPerson(
+  db: BetterSQLite3Database,
+  personId: string,
+): Result<string[]> {
+  const person = db.select().from(persons).where(eq(persons.id, personId)).get();
+  if (!person || person.deletedAt) {
+    return err('NOT_FOUND', `Person '${personId}' not found`);
+  }
+
+  const parentChildTypes = PARENT_CHILD_TYPES as readonly string[];
+
+  // Step 1: Find all parents of this person (personB = child = personId)
+  const parentRels = db
+    .select()
+    .from(relationships)
+    .where(
+      and(
+        isNull(relationships.deletedAt),
+        eq(relationships.personBId, personId),
+        inArray(relationships.type, parentChildTypes as [string, ...string[]]),
+      ),
+    )
+    .all();
+
+  const parentIds = parentRels.map((r) => r.personAId);
+  if (parentIds.length === 0) return ok([]);
+
+  // Step 2: Find all other children of those parents
+  const siblingRels = db
+    .select()
+    .from(relationships)
+    .where(
+      and(
+        isNull(relationships.deletedAt),
+        inArray(relationships.personAId, parentIds as [string, ...string[]]),
+        inArray(relationships.type, parentChildTypes as [string, ...string[]]),
+      ),
+    )
+    .all();
+
+  // Deduplicate and exclude self
+  const siblingIds = [...new Set(siblingRels.map((r) => r.personBId))].filter(
+    (id) => id !== personId,
+  );
+
+  return ok(siblingIds);
 }

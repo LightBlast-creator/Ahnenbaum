@@ -70,3 +70,11 @@
 ## Node.js: Don't use async imports in synchronous factory functions
 - `createLocalStorage()` used `import('node:fs').then(fs => fs.mkdirSync(...))` which is async but the function returned synchronously — the mkdir could complete after the adapter is already used.
 - **Fix**: Use synchronous `mkdirSync()` for startup-time operations. Only use dynamic `import()` when async context is available.
+
+## TypeScript: Always type-annotate API request bodies
+- Building POST/PATCH bodies as untyped object literals `{}` silently drops optional fields — the compiler can't warn about missing properties.
+- **Fix**: Import the input DTO type (e.g., `CreatePersonInput`) and annotate the body: `const body: CreatePersonInput = { ... }`. List all fields explicitly, even when `undefined`, so future additions are visible at the call site.
+
+## Client: Always transform server person shapes before rendering
+- Server returns `PersonWithDetailsRow` (raw `names[]`, `events[]` arrays). UI components expect `PersonWithDetails` (computed `preferredName`, `birthEvent`, `deathEvent`). Passing raw data causes `TypeError: Cannot read properties of undefined (reading 'given')` and crashes the entire person page.
+- **Fix**: Always pipe server person responses through `toPersonWithDetails()` before passing to Svelte components. Never assume server shape matches client shape.

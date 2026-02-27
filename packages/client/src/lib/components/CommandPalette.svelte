@@ -1,28 +1,66 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import Fuse from 'fuse.js';
   import * as m from '$lib/paraglide/messages';
-  import { getAllSearchableItems, type SearchableItem } from '$lib/data/mock-data';
+  import { api, type SearchableItem } from '$lib/api';
 
   let { open = $bindable(false) }: { open: boolean } = $props();
 
   let query = $state('');
   let selectedIndex = $state(0);
   let inputEl: HTMLInputElement | undefined = $state(undefined);
+  let results = $state<SearchableItem[]>([]);
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const allItems = $derived(getAllSearchableItems());
-  const fuse = $derived(
-    new Fuse(allItems, {
-      keys: ['label', 'sublabel'],
-      threshold: 0.4,
-      includeScore: true,
-    }),
-  );
+  async function doSearch(q: string) {
+    try {
+      if (!q.trim()) {
+        // Show initial suggestions — first 10 persons
+        const list = await api.get<{
+          persons: Array<{
+            id: string;
+            names: Array<{ given: string; surname: string; isPreferred: boolean }>;
+          }>;
+          total: number;
+        }>('persons', { limit: 10 });
+        results = list.persons.map((p) => {
+          const preferred = p.names.find((n) => n.isPreferred) ?? p.names[0];
+          return {
+            id: p.id,
+            type: 'person' as const,
+            label: preferred ? `${preferred.given} ${preferred.surname}` : p.id,
+            href: `/persons/${p.id}`,
+          };
+        });
+      } else {
+        const data = await api.get<{
+          results: Array<{ id: string; type: string; title: string; snippet: string }>;
+          total: number;
+        }>('search', { q, limit: 10 });
+        results = data.results.map((r) => ({
+          id: r.id,
+          type: r.type as SearchableItem['type'],
+          label: r.title,
+          sublabel: r.snippet,
+          href: r.type === 'person' ? `/persons/${r.id}` : '#',
+        }));
+      }
+    } catch {
+      results = [];
+    }
+  }
 
-  const results = $derived.by(() => {
-    if (!query.trim()) return allItems.slice(0, 10);
-    return fuse.search(query).map((r) => r.item);
+  $effect(() => {
+    if (open) {
+      doSearch('');
+    }
+  });
+
+  $effect(() => {
+    clearTimeout(debounceTimer);
+    const q = query;
+    debounceTimer = setTimeout(() => doSearch(q), 200);
+    return () => clearTimeout(debounceTimer);
   });
 
   // Group results by type

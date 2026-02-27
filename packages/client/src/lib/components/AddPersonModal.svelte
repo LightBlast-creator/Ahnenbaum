@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { resolveRoute } from '$app/paths';
   import * as m from '$lib/paraglide/messages';
-  import { createPerson, checkDuplicatePerson, type CreatePersonData } from '$lib/data/mock-data';
+  import { api, ApiError, type CreatePersonInput } from '$lib/api';
   import DateInput from '$lib/components/DateInput.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import type { GenealogyDate, Sex } from '@ahnenbaum/core';
@@ -21,6 +21,7 @@
   // UI state
   let toastMessage = $state('');
   let toastType: 'success' | 'error' = $state('success');
+  let saving = $state(false);
 
   // Validation
   const isValid = $derived(given.trim().length > 0 || surname.trim().length > 0);
@@ -33,13 +34,33 @@
       notes.trim().length > 0,
   );
 
-  // Duplicate detection (#27)
-  const duplicates = $derived.by(() => {
+  // Duplicate detection via search API
+  let duplicates = $state<Array<{ id: string; label: string }>>([]);
+  let dupTimer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => {
     const g = given.trim();
     const s = surname.trim();
-    if (g.length < 2 && s.length < 2) return [];
-    return checkDuplicatePerson(g, s);
+    clearTimeout(dupTimer);
+    if (g.length < 2 && s.length < 2) {
+      duplicates = [];
+      return;
+    }
+    dupTimer = setTimeout(async () => {
+      try {
+        const q = `${g} ${s}`.trim();
+        const data = await api.get<{ results: Array<{ id: string; title: string; type: string }> }>(
+          'search',
+          { q, type: 'person', limit: 3 },
+        );
+        duplicates = data.results.map((r) => ({ id: r.id, label: r.title }));
+      } catch {
+        duplicates = [];
+      }
+    }, 300);
+    return () => clearTimeout(dupTimer);
   });
+
   const hasDuplicateWarning = $derived(duplicates.length > 0);
 
   let givenInput: HTMLInputElement | undefined = $state(undefined);
@@ -59,6 +80,7 @@
     birthDate = undefined;
     deathDate = undefined;
     notes = '';
+    duplicates = [];
   }
 
   function close() {
@@ -67,29 +89,37 @@
     resetForm();
   }
 
-  function save(addAnother = false) {
-    if (!isValid) return;
+  async function save(addAnother = false) {
+    if (!isValid || saving) return;
 
-    const data: CreatePersonData = {
-      given: given.trim(),
-      surname: surname.trim(),
-      sex,
-      birthDate,
-      deathDate,
-      notes: notes.trim() || undefined,
-    };
+    saving = true;
+    try {
+      // All CreatePersonInput fields listed explicitly — when adding new fields
+      // to the type, add them here too so nothing is silently dropped.
+      const body: CreatePersonInput = {
+        sex,
+        notes: notes.trim() || undefined,
+        names: [{ given: given.trim(), surname: surname.trim(), isPreferred: true }],
+        birthDate: birthDate ?? undefined,
+        deathDate: deathDate ?? undefined,
+      };
+      const result = await api.post<{ id: string }>('persons', body);
 
-    const person = createPerson(data);
-
-    if (addAnother) {
-      resetForm();
-      toastMessage = m.toast_person_created();
-      toastType = 'success';
-      requestAnimationFrame(() => givenInput?.focus());
-    } else {
-      open = false;
-      resetForm();
-      goto(resolveRoute('/persons/[id]', { id: person.id }));
+      if (addAnother) {
+        resetForm();
+        toastMessage = m.toast_person_created();
+        toastType = 'success';
+        requestAnimationFrame(() => givenInput?.focus());
+      } else {
+        open = false;
+        resetForm();
+        goto(resolveRoute('/persons/[id]', { id: result.id }));
+      }
+    } catch (e) {
+      toastMessage = e instanceof ApiError ? e.message : m.error_generic();
+      toastType = 'error';
+    } finally {
+      saving = false;
     }
   }
 
@@ -162,7 +192,7 @@
               <strong>{m.duplicate_warning()}:</strong>
               <ul class="duplicate-list">
                 {#each duplicates.slice(0, 3) as dup (dup.id)}
-                  <li>{dup.preferredName.given} {dup.preferredName.surname}</li>
+                  <li>{dup.label}</li>
                 {/each}
               </ul>
             </div>

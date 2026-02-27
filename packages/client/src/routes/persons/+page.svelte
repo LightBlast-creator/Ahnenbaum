@@ -1,14 +1,34 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
   import { base } from '$app/paths';
-  import { getPersons, type GetPersonsOptions, type PersonWithDetails } from '$lib/data/mock-data';
+  import {
+    api,
+    toPersonWithDetails,
+    type PersonWithDetails,
+    type GetPersonsOptions,
+  } from '$lib/api';
   import { formatLifespan } from '$lib/utils/date-format';
+  import Toast from '$lib/components/Toast.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
   let searchQuery = $state('');
   let sortBy: GetPersonsOptions['sortBy'] = $state('name');
   let sortDir: 'asc' | 'desc' = $state('asc');
   let currentPage = $state(1);
   const pageSize = 10;
+
+  // Toast
+  let toastMessage = $state('');
+  let toastType: 'success' | 'error' = $state('success');
+
+  // Confirm dialog
+  let confirmOpen = $state(false);
+  let pendingDeleteId = $state<string | null>(null);
+
+  // Data
+  let allPersons = $state<PersonWithDetails[]>([]);
+  let _loading = $state(true);
+  let refreshKey = $state(0);
 
   // Debounced search
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -20,19 +40,80 @@
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
       debouncedSearch = value;
-      currentPage = 1; // Reset to first page on search
+      currentPage = 1;
     }, 300);
   }
 
-  const result = $derived(
-    getPersons({
-      search: debouncedSearch || undefined,
-      sortBy,
-      sortDir,
-      page: currentPage,
-      pageSize,
-    }),
-  );
+  // Load all persons from API (server returns enriched data)
+  async function loadPersons() {
+    _loading = true;
+    try {
+      // Fetch a generous page to enable client-side sort/filter
+      const data = await api.get<{
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        persons: Array<any>;
+        total: number;
+      }>('persons', { page: 1, limit: 200 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allPersons = data.persons.map((p: any) => toPersonWithDetails(p));
+    } catch {
+      allPersons = [];
+    }
+    _loading = false;
+  }
+
+  $effect(() => {
+    void refreshKey;
+    loadPersons();
+  });
+
+  // Client-side search + sort + paginate
+  const result = $derived.by(() => {
+    let filtered = allPersons;
+
+    // Search
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      filtered = filtered.filter((p) =>
+        p.allNames.some(
+          (n) =>
+            n.given.toLowerCase().includes(q) ||
+            n.surname.toLowerCase().includes(q) ||
+            (n.maiden?.toLowerCase().includes(q) ?? false) ||
+            (n.nickname?.toLowerCase().includes(q) ?? false),
+        ),
+      );
+    }
+
+    // Sort
+    const dir = sortDir === 'desc' ? -1 : 1;
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === 'birth') {
+        return (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          dir * ((a.birthEvent?.date as any)?.year ?? 0) - ((b.birthEvent?.date as any)?.year ?? 0)
+        );
+      }
+      if (sortBy === 'death') {
+        return (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          dir * ((a.deathEvent?.date as any)?.year ?? 0) - ((b.deathEvent?.date as any)?.year ?? 0)
+        );
+      }
+      // Default: by name
+      const nameA = `${a.preferredName.surname} ${a.preferredName.given}`.toLowerCase();
+      const nameB = `${b.preferredName.surname} ${b.preferredName.given}`.toLowerCase();
+      return dir * nameA.localeCompare(nameB);
+    });
+
+    // Paginate
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const items = filtered.slice(start, start + pageSize);
+
+    return { items, total, page: currentPage, pageSize, totalPages };
+  });
 
   function toggleSort(column: GetPersonsOptions['sortBy']) {
     if (sortBy === column) {
@@ -51,6 +132,34 @@
 
   function getInitials(person: PersonWithDetails): string {
     return `${person.preferredName.given.charAt(0)}${person.preferredName.surname.charAt(0)}`;
+  }
+
+  function handleDeleteClick(personId: string, event: MouseEvent) {
+    if (event.shiftKey) {
+      executeDelete(personId);
+    } else {
+      pendingDeleteId = personId;
+      confirmOpen = true;
+    }
+  }
+
+  async function executeDelete(personId: string) {
+    try {
+      await api.del(`persons/${personId}`);
+      refreshKey++;
+      toastMessage = m.toast_person_deleted();
+      toastType = 'success';
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
+  }
+
+  function onConfirmDelete() {
+    if (pendingDeleteId) {
+      executeDelete(pendingDeleteId);
+      pendingDeleteId = null;
+    }
   }
 </script>
 
@@ -117,6 +226,7 @@
               </button>
             </th>
             <th class="col-place">📍</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
         <tbody>
@@ -145,6 +255,16 @@
               </td>
               <td class="col-place">
                 {person.birthPlace?.name ?? ''}
+              </td>
+              <td class="col-actions">
+                <button
+                  class="btn-delete"
+                  onclick={(e: MouseEvent) => handleDeleteClick(person.id, e)}
+                  aria-label={m.person_delete()}
+                  title={m.person_delete()}
+                >
+                  🗑️
+                </button>
               </td>
             </tr>
           {/each}
@@ -182,6 +302,17 @@
     {/if}
   {/if}
 </div>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title={m.person_delete()}
+  message={m.person_delete_confirm()}
+  confirmLabel={m.person_delete()}
+  variant="danger"
+  onConfirm={onConfirmDelete}
+/>
+
+<Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
 <style>
   .persons-page {
@@ -326,6 +457,26 @@
   .col-place {
     color: var(--color-text-secondary);
     white-space: nowrap;
+  }
+
+  .col-actions {
+    width: 48px;
+    text-align: center;
+  }
+
+  .btn-delete {
+    padding: var(--space-1);
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    border-radius: var(--radius-md);
+    opacity: 0.4;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+  }
+
+  .btn-delete:hover {
+    opacity: 1;
+    background: var(--color-danger-light, rgba(239, 68, 68, 0.1));
   }
 
   .empty-state {
