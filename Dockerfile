@@ -69,7 +69,8 @@ RUN npm ci --omit=dev --ignore-scripts && \
     npm install tsx && \
     apk del .build-deps
 
-# Copy core source (exported as raw .ts — resolved via tsx at runtime)
+# Copy core (compiled dist for package exports + source for tsx fallback)
+COPY --from=build /app/packages/core/dist packages/core/dist
 COPY --from=build /app/packages/core/src packages/core/src
 
 # Copy compiled server

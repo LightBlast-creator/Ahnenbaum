@@ -1,0 +1,29 @@
+# Production docker-compose — single-container Ahnenbaum
+services:
+  ahnenbaum:
+    build:
+      context: .
+      target: prod
+    ports:
+      - '127.0.0.1:4200:3000'
+    volumes:
+      - db-data:/app/packages/server/data
+      - media:/app/packages/server/data/media
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DATABASE_URL=/app/packages/server/data/ahnenbaum.db
+      - AUTH_MODE=single-user
+      - LOG_LEVEL=info
+      - BACKUP_INTERVAL_HOURS=24
+      - BACKUP_RETAIN_COUNT=7
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  media:
