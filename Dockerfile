@@ -86,7 +86,7 @@ COPY --from=build /app/packages/client/build packages/client/build
 COPY packages/plugins/ packages/plugins/
 
 # Ensure data directories are owned by node user
-RUN mkdir -p packages/server/data packages/server/data/backups packages/server/data/media && \
+RUN mkdir -p packages/server/data packages/server/data/backups packages/server/data/media packages/server/data/logs && \
     chown -R node:node /app
 
 USER node

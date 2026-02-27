@@ -12,14 +12,15 @@ services:
     volumes:
       - db-data:/app/packages/server/data
       - media:/app/packages/server/data/media
+      - logs:/app/packages/server/data/logs
     environment:
       - PORT=3000
       - NODE_ENV=production
       - DATABASE_URL=/app/packages/server/data/ahnenbaum.db
       - AUTH_MODE=single-user
       - LOG_LEVEL=info
-      - BACKUP_INTERVAL_HOURS=24
-      - BACKUP_RETAIN_COUNT=7
+      - BACKUP_INTERVAL_HOURS=6
+      - BACKUP_RETAIN_COUNT=30
     logging:
       driver: json-file
       options:
@@ -35,3 +36,4 @@ networks:
 volumes:
   db-data:
   media:
+  logs:

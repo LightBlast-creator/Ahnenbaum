@@ -2,8 +2,12 @@
  * Structured JSON logger.
  *
  * Output format: JSON in production, pretty-printed in development.
+ * In production, log entries are also persisted to rotating log files.
  * Configurable via LOG_LEVEL env var.
  */
+
+import { appendFileSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -34,6 +38,76 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 const isDev = process.env.NODE_ENV !== 'production';
+
+// ── File transport (production only) ────────────────────────────────
+const LOG_DIR = resolve('data/logs');
+const LOG_FILE = join(LOG_DIR, 'ahnenbaum.log');
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_ROTATED_FILES = 5;
+const ROTATION_CHECK_INTERVAL = 100; // check file size every N writes
+
+let writeCount = 0;
+
+if (!isDev) {
+  try {
+    mkdirSync(LOG_DIR, { recursive: true });
+  } catch {
+    // Best-effort — if we can't create it, file writes will silently fail
+  }
+}
+
+/**
+ * Rotate log files when the current file exceeds MAX_FILE_SIZE.
+ * Shifts ahnenbaum.log → .log.1 → .log.2 … → .log.N (oldest deleted).
+ */
+function rotateIfNeeded(): void {
+  try {
+    const stats = statSync(LOG_FILE);
+    if (stats.size < MAX_FILE_SIZE) return;
+
+    // Delete oldest rotated file
+    const oldest = `${LOG_FILE}.${MAX_ROTATED_FILES}`;
+    try {
+      unlinkSync(oldest);
+    } catch {
+      // May not exist — fine
+    }
+
+    // Shift existing rotated files up by one
+    for (let i = MAX_ROTATED_FILES - 1; i >= 1; i--) {
+      try {
+        renameSync(`${LOG_FILE}.${i}`, `${LOG_FILE}.${i + 1}`);
+      } catch {
+        // May not exist — fine
+      }
+    }
+
+    // Rotate current → .1
+    renameSync(LOG_FILE, `${LOG_FILE}.1`);
+  } catch {
+    // File may not exist yet or stat failed — skip rotation
+  }
+}
+
+/**
+ * Append a JSON log line to the persistent log file.
+ * Never throws — file transport failures are silently ignored.
+ */
+function writeToFile(entry: LogEntry): void {
+  if (isDev) return;
+
+  try {
+    appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n');
+
+    writeCount++;
+    if (writeCount >= ROTATION_CHECK_INTERVAL) {
+      writeCount = 0;
+      rotateIfNeeded();
+    }
+  } catch {
+    // Silent — log file issues must never crash the server
+  }
+}
 
 function formatEntry(entry: LogEntry): string {
   if (isDev) {
@@ -68,8 +142,8 @@ function log(
     module,
   };
 
+  // Stdout/stderr (always)
   const formatted = formatEntry(entry);
-
   switch (level) {
     case 'error':
       console.error(formatted);
@@ -83,6 +157,9 @@ function log(
     default:
       console.info(formatted);
   }
+
+  // Persistent file (production only)
+  writeToFile(entry);
 }
 
 export interface Logger {
