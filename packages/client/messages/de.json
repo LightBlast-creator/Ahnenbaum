@@ -143,5 +143,8 @@
   "relationship_is_parent": "{name} ist ein Elternteil dieser Person",
   "relationship_is_child": "Diese Person ist ein Elternteil von {name}",
   "toast_relationship_created": "Beziehung erstellt",
-  "toast_relationship_error": "Beziehung konnte nicht erstellt werden"
+  "toast_relationship_error": "Beziehung konnte nicht erstellt werden",
+  "connection_reconnecting": "Server wird neu gestartet, verbinde…",
+  "connection_offline": "Server nicht erreichbar",
+  "connection_restored": "Verbindung wiederhergestellt"
 }

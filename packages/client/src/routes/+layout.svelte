@@ -6,6 +6,7 @@
   import AddPersonModal from '$lib/components/AddPersonModal.svelte';
   import CommandPalette from '$lib/components/CommandPalette.svelte';
   import ShortcutOverlay from '$lib/components/ShortcutOverlay.svelte';
+  import ConnectionBanner from '$lib/components/ConnectionBanner.svelte';
 
   let { children } = $props();
   let sidebarCollapsed = $state(false);
@@ -63,6 +64,8 @@
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
+
+<ConnectionBanner />
 
 <div class="app-layout">
   <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />

@@ -143,5 +143,8 @@
   "relationship_is_parent": "{name} is a parent of this person",
   "relationship_is_child": "This person is a parent of {name}",
   "toast_relationship_created": "Relationship created",
-  "toast_relationship_error": "Failed to create relationship"
+  "toast_relationship_error": "Failed to create relationship",
+  "connection_reconnecting": "Server is restarting, reconnecting…",
+  "connection_offline": "Server unreachable",
+  "connection_restored": "Connection restored"
 }

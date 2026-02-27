@@ -18,6 +18,16 @@ import type {
   Relationship,
 } from '@ahnenbaum/core';
 
+// ── Network error ───────────────────────────────────────────────────
+
+/** Thrown when the server is unreachable (fetch itself fails). */
+export class NetworkError extends Error {
+  constructor(message = 'Network request failed') {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
 // ── API error ───────────────────────────────────────────────────────
 
 export class ApiError extends Error {
@@ -45,6 +55,16 @@ interface ApiErrorResponse {
 }
 
 type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+
+// ── Retry config ────────────────────────────────────────────────────
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+const IDEMPOTENT_METHODS = new Set(['GET', 'PUT', 'PATCH', 'DELETE']);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // ── Core fetch helper ───────────────────────────────────────────────
 
@@ -75,21 +95,54 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
   };
 
-  const res = await fetch(url, opts);
+  const canRetry = IDEMPOTENT_METHODS.has(method.toUpperCase());
+  const maxAttempts = canRetry ? MAX_RETRIES + 1 : 1;
 
-  // 204 No Content — no body to parse
-  if (res.status === 204) {
-    return undefined as T;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, opts);
+
+      // Fetch succeeded — server is reachable
+      // Lazy-import to avoid circular deps at module load
+      const { markOnline } = await import('./connection');
+      markOnline();
+
+      // 204 No Content — no body to parse
+      if (res.status === 204) {
+        return undefined as T;
+      }
+
+      const json: ApiResponse<T> = await res.json();
+
+      if (!json.ok) {
+        const err = (json as ApiErrorResponse).error;
+        throw new ApiError(res.status, err.code, err.message, err.details);
+      }
+
+      return json.data;
+    } catch (err) {
+      // If it's an ApiError, don't retry (server responded, just with an error)
+      if (err instanceof ApiError) throw err;
+
+      // Network-level failure — server unreachable
+      const isLastAttempt = attempt === maxAttempts - 1;
+
+      if (!isLastAttempt) {
+        // Exponential backoff: 1s, 2s, 4s
+        await sleep(BASE_DELAY_MS * 2 ** attempt);
+        continue;
+      }
+
+      // All retries exhausted — notify connection module and throw
+      const { markDisconnected } = await import('./connection');
+      markDisconnected();
+
+      throw new NetworkError(err instanceof Error ? err.message : 'Network request failed');
+    }
   }
 
-  const json: ApiResponse<T> = await res.json();
-
-  if (!json.ok) {
-    const err = (json as ApiErrorResponse).error;
-    throw new ApiError(res.status, err.code, err.message, err.details);
-  }
-
-  return json.data;
+  // TypeScript: unreachable, but satisfies return type
+  throw new NetworkError('Network request failed');
 }
 
 // ── Public API ──────────────────────────────────────────────────────
