@@ -2,41 +2,150 @@
   import { page } from '$app/state';
   import { base } from '$app/paths';
   import * as m from '$lib/paraglide/messages';
-  import {
-    getPerson,
-    getEventsForPerson,
-    getRelationshipsForPerson,
-    updatePerson,
-    addEventToPerson,
-    type AddEventData,
-  } from '$lib/data/mock-data';
+  import { api, toPersonWithDetails, type PersonWithDetails } from '$lib/api';
   import { formatLifespan } from '$lib/utils/date-format';
   import EventList from '$lib/components/EventList.svelte';
   import EventForm from '$lib/components/EventForm.svelte';
   import RelationshipList from '$lib/components/RelationshipList.svelte';
+  import AddRelationshipModal from '$lib/components/AddRelationshipModal.svelte';
   import MediaGallery from '$lib/components/media/MediaGallery.svelte';
   import MediaViewer from '$lib/components/media/MediaViewer.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
   import type { Sex, EventType, GenealogyDate } from '@ahnenbaum/core';
+  import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 
   const personId = $derived(page.params.id ?? '');
 
   // Use counter to force reactivity on mutations
   let refreshKey = $state(0);
 
-  const person = $derived.by(() => {
+  // Async person data
+  let person = $state<PersonWithDetails | undefined>(undefined);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let personEvents = $state<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let relationships = $state<any[]>([]);
+  let siblings = $state<PersonWithDetails[]>([]);
+  type ExtendedFamilyGroup = { person: PersonWithDetails; derivedRelationship: string }[];
+  type ExtendedFamilyData = Record<string, ExtendedFamilyGroup>;
+  let extendedFamily = $state<ExtendedFamilyData | null>(null);
+  let _loading = $state(true);
+
+  async function loadPerson() {
+    if (!personId) return;
+    _loading = true;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = await api.get<any>(`persons/${personId}`);
+      person = toPersonWithDetails(raw);
+      personEvents = raw.events ?? [];
+    } catch {
+      person = undefined;
+      personEvents = [];
+    }
+    _loading = false;
+  }
+
+  const PARENT_CHILD_SET = new Set(PARENT_CHILD_TYPES);
+
+  function deriveRole(
+    type: string,
+    rel: { personAId: string; personBId: string },
+    currentPersonId: string,
+  ): 'parent' | 'child' | 'partner' {
+    if (PARENT_CHILD_SET.has(type as Parameters<typeof PARENT_CHILD_SET.has>[0])) {
+      // Convention: personA = parent, personB = child
+      return rel.personBId === currentPersonId ? 'parent' : 'child';
+    }
+    return 'partner';
+  }
+
+  async function loadRelationships() {
+    if (!personId) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const grouped = await api.get<Record<string, any[]>>(`relationships/person/${personId}`);
+      // Flatten and enrich each relationship with related person details
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entries: any[] = [];
+      for (const [type, rels] of Object.entries(grouped)) {
+        for (const rel of rels) {
+          const relatedId = rel.personAId === personId ? rel.personBId : rel.personAId;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const relatedRaw = await api.get<any>(`persons/${relatedId}`);
+            const relatedPerson = toPersonWithDetails(relatedRaw);
+            entries.push({
+              relationship: rel,
+              relatedPerson,
+              role: deriveRole(type, rel, personId),
+            });
+          } catch {
+            // Skip unresolvable persons
+          }
+        }
+      }
+      relationships = entries;
+    } catch {
+      relationships = [];
+    }
+  }
+
+  async function loadSiblings() {
+    if (!personId) return;
+    try {
+      const siblingIds = await api.get<string[]>(`relationships/person/${personId}/siblings`);
+      const resolved: PersonWithDetails[] = [];
+      for (const id of siblingIds) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const raw = await api.get<any>(`persons/${id}`);
+          resolved.push(toPersonWithDetails(raw));
+        } catch {
+          // Skip unresolvable persons
+        }
+      }
+      siblings = resolved;
+    } catch {
+      siblings = [];
+    }
+  }
+
+  async function loadExtendedFamily() {
+    if (!personId) return;
+    try {
+      // Server returns raw person objects; cast to ServerPersonResponse shape
+      // that toPersonWithDetails expects (safe: same structure, just narrower types)
+      const raw = await api.get<
+        Record<
+          string,
+          { person: Parameters<typeof toPersonWithDetails>[0]; derivedRelationship: string }[]
+        >
+      >(`relationships/person/${personId}/extended`);
+      const transformed: ExtendedFamilyData = {};
+      for (const [key, members] of Object.entries(raw)) {
+        transformed[key] = members.map((member) => ({
+          ...member,
+          person: toPersonWithDetails(member.person),
+        }));
+      }
+      extendedFamily = transformed;
+    } catch {
+      extendedFamily = null;
+    }
+  }
+
+  $effect(() => {
     void refreshKey;
-    return personId ? getPerson(personId) : undefined;
+    if (personId) {
+      loadPerson();
+      loadRelationships();
+      loadSiblings();
+      loadExtendedFamily();
+    }
   });
-  const events = $derived.by(() => {
-    void refreshKey;
-    return person ? getEventsForPerson(person.id) : [];
-  });
-  const relationships = $derived.by(() => {
-    void refreshKey;
-    return person ? getRelationshipsForPerson(person.id) : [];
-  });
+
   const lifespan = $derived(
     person ? formatLifespan(person.birthEvent?.date, person.deathEvent?.date) : '',
   );
@@ -55,6 +164,9 @@
 
   // ── Event form ──
   let showEventForm = $state(false);
+
+  // ── Relationship modal ──
+  let showRelModal = $state(false);
 
   // ── Toast ──
   let toastMessage = $state('');
@@ -147,27 +259,46 @@
     isEditing = false;
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!person) return;
-    updatePerson(person.id, {
-      given: editGiven.trim(),
-      surname: editSurname.trim(),
-      sex: editSex,
-      notes: editNotes.trim() || undefined,
-    });
-    isEditing = false;
-    refreshKey++;
-    toastMessage = m.toast_person_updated();
-    toastType = 'success';
+    try {
+      // Update person fields (sex, notes)
+      await api.patch(`persons/${person.id}`, {
+        sex: editSex,
+        notes: editNotes.trim() || undefined,
+      });
+      // Update name fields via separate endpoint
+      const preferredNameId = person.preferredName.id;
+      await api.patch(`persons/${person.id}/names/${preferredNameId}`, {
+        given: editGiven.trim(),
+        surname: editSurname.trim(),
+      });
+      isEditing = false;
+      refreshKey++;
+      toastMessage = m.toast_person_updated();
+      toastType = 'success';
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
   }
 
-  function handleAddEvent(data: { type: EventType; date?: GenealogyDate; description?: string }) {
+  async function handleAddEvent(data: {
+    type: EventType;
+    date?: GenealogyDate;
+    description?: string;
+  }) {
     if (!person) return;
-    addEventToPerson(person.id, data as AddEventData);
-    showEventForm = false;
-    refreshKey++;
-    toastMessage = m.toast_event_added();
-    toastType = 'success';
+    try {
+      await api.post(`persons/${person.id}/events`, data);
+      showEventForm = false;
+      refreshKey++;
+      toastMessage = m.toast_event_added();
+      toastType = 'success';
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
   }
 
   const sexOptions: { value: Sex; label: () => string }[] = [
@@ -255,7 +386,7 @@
 
     <div class="person-body">
       <div class="person-main">
-        <EventList {events} />
+        <EventList events={personEvents} />
         {#if showEventForm}
           <EventForm onSave={handleAddEvent} onCancel={() => (showEventForm = false)} />
         {:else}
@@ -274,7 +405,10 @@
         <PluginSlot slot="person.detail.tab" context={{ personId }} />
       </div>
       <aside class="person-sidebar">
-        <RelationshipList {relationships} />
+        <RelationshipList {relationships} {siblings} {extendedFamily} />
+        <button class="btn-add-rel" onclick={() => (showRelModal = true)}>
+          + {m.relationship_add()}
+        </button>
 
         <div class="person-meta">
           <a href="{base}/tree?root={person.id}" class="tree-link">
@@ -294,6 +428,17 @@
 {/if}
 
 <MediaViewer bind:open={viewerOpen} media={selectedMedia} />
+
+{#if person}
+  <AddRelationshipModal
+    bind:open={showRelModal}
+    currentPersonId={person.id}
+    currentPersonName={person.preferredName.given}
+    onSaved={() => {
+      refreshKey++;
+    }}
+  />
+{/if}
 
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
@@ -527,6 +672,24 @@
   }
 
   .btn-add-event:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .btn-add-rel {
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+    width: 100%;
+    text-align: center;
+  }
+
+  .btn-add-rel:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
     background: var(--color-primary-light);
