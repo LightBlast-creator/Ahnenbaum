@@ -28,22 +28,24 @@
 
   const bounds = $derived(getTreeBounds(nodes));
 
-  // Center the tree on initial load using actual bounds (works for both modes)
+  // Center the tree on initial load, then fit to screen
+  let hasFitted = false;
   $effect(() => {
-    if (nodes.length > 0 && containerEl) {
-      const rect = containerEl.getBoundingClientRect();
-      // Center the bounding box of all nodes in the viewport
-      const midX = (bounds.minX + bounds.maxX) / 2;
-      const midY = (bounds.minY + bounds.maxY) / 2;
-      panX = rect.width / 2 - midX;
-      panY = rect.height / 2 - midY;
+    if (nodes.length > 0 && containerEl && !hasFitted) {
+      hasFitted = true;
+      // Use requestAnimationFrame so the container has its final dimensions
+      requestAnimationFrame(() => fitToScreen());
     }
   });
 
   function handleWheel(event: WheelEvent) {
     event.preventDefault();
-    const delta = event.deltaY > 0 ? 0.9 : 1.1;
-    scale = Math.max(0.25, Math.min(3, scale * delta));
+
+    // ctrlKey is set for trackpad pinch-to-zoom gestures
+    const sensitivity = event.ctrlKey ? 0.005 : 0.002;
+    const delta = -event.deltaY * sensitivity;
+    const newScale = scale * (1 + delta);
+    scale = Math.max(0.1, Math.min(3, newScale));
   }
 
   function handleMouseDown(event: MouseEvent) {
@@ -70,7 +72,7 @@
   }
 
   function zoomOut() {
-    scale = Math.max(0.25, scale / 1.2);
+    scale = Math.max(0.1, scale / 1.2);
   }
 
   function fitToScreen() {
@@ -123,6 +125,12 @@
             y2={conn.y2}
             class="tree-connection partner-connection"
           />
+          <text
+            x={(conn.x1 + conn.x2) / 2}
+            y={conn.y1 - 6}
+            text-anchor="middle"
+            class="connection-label">♥</text
+          >
         {:else}
           <!-- Parent-child: cubic bezier curve -->
           <path
@@ -184,5 +192,12 @@
   .partner-connection {
     stroke-dasharray: 6 4;
     stroke: var(--color-primary-light);
+  }
+
+  .connection-label {
+    fill: var(--color-text-muted);
+    font-size: 10px;
+    font-family: var(--font-family);
+    pointer-events: none;
   }
 </style>

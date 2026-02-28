@@ -10,6 +10,7 @@
     type ServerPersonResponse,
   } from '$lib/api';
   import TreeCanvas from '$lib/components/TreeCanvas.svelte';
+  import EmptyState from '$lib/components/EmptyState.svelte';
   import { layoutAncestorTree } from '$lib/utils/tree-layout';
   import type { TreeData } from '$lib/utils/tree-layout';
   import { layoutFamilyGraph } from '$lib/utils/family-graph-layout';
@@ -106,7 +107,18 @@
   {#if loading}
     <div class="tree-status">{m.loading()}</div>
   {:else if nodes.length === 0}
-    <div class="tree-status">{m.tree_empty()}</div>
+    <div class="tree-empty-wrapper">
+      <EmptyState
+        icon="tree"
+        title={m.tree_empty()}
+        actionLabel={m.person_add()}
+        actionHref="#"
+        onAction={() => {
+          const event = new KeyboardEvent('keydown', { key: 'n', metaKey: true, bubbles: true });
+          window.dispatchEvent(event);
+        }}
+      />
+    </div>
   {:else}
     <TreeCanvas {nodes} {connections} onPersonClick={handlePersonClick} />
   {/if}
@@ -115,6 +127,7 @@
 <style>
   .tree-page {
     flex: 1;
+    height: 100%;
     min-height: 0;
     margin: calc(-1 * var(--space-6));
     position: relative;
