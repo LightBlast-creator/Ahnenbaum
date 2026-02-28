@@ -59,3 +59,21 @@ export interface Relationship {
   readonly updatedAt: string;
   readonly deletedAt?: string;
 }
+
+/**
+ * Wire-format relationship row — serialized dates as `string | null`.
+ * Shared between server services and client API layer.
+ */
+export interface RelationshipRow {
+  id: string;
+  personAId: string;
+  personBId: string;
+  type: string;
+  startDate: string | null;
+  endDate: string | null;
+  placeId: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}

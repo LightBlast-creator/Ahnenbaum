@@ -19,6 +19,7 @@ export type {
   RelationshipType,
   ParentChildRelationshipType,
   PartnerRelationshipType,
+  RelationshipRow,
 } from './relationship';
 export { PARENT_CHILD_TYPES } from './relationship';
 export type { Event, EventType } from './event';

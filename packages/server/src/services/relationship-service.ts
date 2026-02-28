@@ -5,7 +5,7 @@
 import { eq, or, isNull, and, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
-import type { GenealogyDate } from '@ahnenbaum/core';
+import type { GenealogyDate, RelationshipRow } from '@ahnenbaum/core';
 import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 import { relationships } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
@@ -31,22 +31,6 @@ export interface UpdateRelationshipInput {
   placeId?: string | null;
   notes?: string;
 }
-
-interface RelationshipRow {
-  id: string;
-  personAId: string;
-  personBId: string;
-  type: string;
-  startDate: string | null;
-  endDate: string | null;
-  placeId: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
-// ── Service methods ──────────────────────────────────────────────────
 
 export function createRelationship(
   db: BetterSQLite3Database,

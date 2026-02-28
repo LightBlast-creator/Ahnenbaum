@@ -33,6 +33,7 @@ export type {
   RelationshipType,
   ParentChildRelationshipType,
   PartnerRelationshipType,
+  RelationshipRow,
   // Event
   Event,
   EventType,
