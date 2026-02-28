@@ -153,6 +153,55 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     }
   }
 
+  // ── Step 2b: Correct generation gaps from partner-pull cascading ──
+  // When children get pulled to higher gens through partner relationships,
+  // their parents may be too far above. Iterate until stable.
+  let changed = true;
+  while (changed) {
+    changed = false;
+
+    // Pull parents down: parent.gen should be min(child.gen) - 1
+    for (const [parentId, children] of childrenOf.entries()) {
+      const parentGen = generation.get(parentId);
+      if (parentGen === undefined) continue;
+      let minChildGen = Infinity;
+      for (const childId of children) {
+        const cg = generation.get(childId);
+        if (cg !== undefined && cg < minChildGen) minChildGen = cg;
+      }
+      if (minChildGen !== Infinity && parentGen < minChildGen - 1) {
+        generation.set(parentId, minChildGen - 1);
+        changed = true;
+      }
+    }
+
+    // Push children down: child.gen should be >= parent.gen + 1
+    for (const [parentId, children] of childrenOf.entries()) {
+      const parentGen = generation.get(parentId);
+      if (parentGen === undefined) continue;
+      for (const childId of children) {
+        const cg = generation.get(childId);
+        if (cg !== undefined && cg < parentGen + 1) {
+          generation.set(childId, parentGen + 1);
+          changed = true;
+        }
+      }
+    }
+
+    // Sync partners to share the max gen
+    for (const [personId, partners] of partnersOf.entries()) {
+      const pg = generation.get(personId);
+      if (pg === undefined) continue;
+      for (const partnerId of partners) {
+        const partnerGen = generation.get(partnerId);
+        if (partnerGen !== undefined && partnerGen < pg) {
+          generation.set(partnerId, pg);
+          changed = true;
+        }
+      }
+    }
+  }
+
   // Handle disconnected persons (no relationships at all) — assign to gen 0
   for (const person of persons) {
     if (!generation.has(person.id)) {

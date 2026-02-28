@@ -146,4 +146,62 @@ describe('layoutFamilyGraph', () => {
     expect(result.nodes).toHaveLength(1);
     expect(result.connections).toHaveLength(0);
   });
+
+  it('aligns generations when two branches merge via partner pull', () => {
+    // Friedrich & Berta → parents of Ernst
+    // Ernst married Helene
+    // Lieselotte & Helmut → parents of Barbara
+    // Barbara married Martin (child of Ernst & Helene)
+    // Expected: Friedrich/Berta at gen 0, Lieselotte/Helmut + Ernst/Helene at gen 1, Martin/Barbara at gen 2
+    const persons = [
+      makePerson('friedrich', 'Friedrich', 'Probst'),
+      makePerson('berta', 'Berta', 'Pfeiffer'),
+      makePerson('ernst', 'Ernst', 'Probst'),
+      makePerson('helene', 'Helene', 'Probst'),
+      makePerson('lieselotte', 'Lieselotte', 'Brekle'),
+      makePerson('helmut', 'Helmut', 'Brekle'),
+      makePerson('martin', 'Martin', 'Probst'),
+      makePerson('barbara', 'Barbara', 'Probst'),
+    ];
+    const edges: GraphEdge[] = [
+      // Friedrich & Berta are parents of Ernst
+      { id: 'r1', personAId: 'friedrich', personBId: 'ernst', type: 'biological_parent' },
+      { id: 'r2', personAId: 'berta', personBId: 'ernst', type: 'biological_parent' },
+      // Ernst & Helene are married
+      { id: 'r3', personAId: 'helene', personBId: 'ernst', type: 'marriage' },
+      // Ernst & Helene are parents of Martin
+      { id: 'r4', personAId: 'ernst', personBId: 'martin', type: 'biological_parent' },
+      { id: 'r5', personAId: 'helene', personBId: 'martin', type: 'biological_parent' },
+      // Lieselotte & Helmut are married
+      { id: 'r6', personAId: 'helmut', personBId: 'lieselotte', type: 'marriage' },
+      // Lieselotte & Helmut are parents of Barbara
+      { id: 'r7', personAId: 'lieselotte', personBId: 'barbara', type: 'biological_parent' },
+      { id: 'r8', personAId: 'helmut', personBId: 'barbara', type: 'biological_parent' },
+      // Martin & Barbara are married
+      { id: 'r9', personAId: 'barbara', personBId: 'martin', type: 'marriage' },
+    ];
+
+    const result = layoutFamilyGraph(persons, edges);
+
+    const gen = (id: string) => {
+      const node = result.nodes.find((n) => n.person.id === id);
+      if (!node) throw new Error(`Node not found: ${id}`);
+      return node.y;
+    };
+
+    // Friedrich & Berta should be at the top (gen 0)
+    expect(gen('friedrich')).toBe(gen('berta'));
+
+    // Lieselotte & Helmut should be one generation below Friedrich
+    expect(gen('lieselotte')).toBe(gen('helmut'));
+    expect(gen('lieselotte')).toBeGreaterThan(gen('friedrich'));
+
+    // Ernst & Helene should be at the same level as Lieselotte & Helmut
+    expect(gen('ernst')).toBe(gen('helene'));
+    expect(gen('ernst')).toBe(gen('lieselotte'));
+
+    // Martin & Barbara should be one generation below Ernst
+    expect(gen('martin')).toBe(gen('barbara'));
+    expect(gen('martin')).toBeGreaterThan(gen('ernst'));
+  });
 });
