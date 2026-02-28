@@ -107,7 +107,7 @@ export function createMediaRoutes(
     });
   });
 
-  // GET /api/media/:id/thumb — stream thumbnail
+  // GET /api/media/:id/thumb — stream thumbnail (fallback to original)
   router.get('/:id/thumb', async (c) => {
     const id = c.req.param('id');
     const result = mediaService.getMediaById(db, id);
@@ -115,19 +115,30 @@ export function createMediaRoutes(
 
     const thumbName = mediaService.getThumbFilename(result.data.originalFilename);
     const thumbData = await storage.get(id, thumbName);
-    if (!thumbData) {
-      // No thumbnail available — return 404
-      return apiError(c, {
-        code: 'NOT_FOUND',
-        message: 'Thumbnail not available for this media',
+    if (thumbData) {
+      return new Response(new Uint8Array(thumbData), {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/webp',
+          'Content-Length': thumbData.length.toString(),
+        },
       });
     }
 
-    return new Response(new Uint8Array(thumbData), {
+    // No thumbnail — fall back to original file (graceful degradation)
+    const fileData = await storage.get(id, result.data.originalFilename);
+    if (!fileData) {
+      return apiError(c, {
+        code: 'NOT_FOUND',
+        message: 'Media file not found on disk',
+      });
+    }
+
+    return new Response(new Uint8Array(fileData), {
       status: 200,
       headers: {
-        'Content-Type': 'image/webp',
-        'Content-Length': thumbData.length.toString(),
+        'Content-Type': result.data.mimeType,
+        'Content-Length': fileData.length.toString(),
       },
     });
   });

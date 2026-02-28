@@ -65,7 +65,7 @@ COPY packages/client/package.json packages/client/package.json
 
 # Install production dependencies only
 RUN npm ci --omit=dev --ignore-scripts && \
-    npm rebuild better-sqlite3 && \
+    npm rebuild better-sqlite3 sharp && \
     npm install tsx && \
     apk del .build-deps
 
