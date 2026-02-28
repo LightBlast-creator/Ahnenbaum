@@ -49,8 +49,17 @@ export interface UploadMediaInput {
   /** Optional metadata provided by the user. */
   caption?: string;
   description?: string;
+  notes?: string;
   date?: string;
   placeId?: string;
+}
+
+export interface UpdateMediaInput {
+  caption?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  date?: string | null;
+  placeId?: string | null;
 }
 
 export interface ListMediaOptions {
@@ -179,9 +188,10 @@ export async function uploadMedia(
       mimeType: input.mimeType,
       size: input.data.length,
       caption: input.caption ?? null,
+      description: input.description ?? null,
+      notes: input.notes ?? null,
       date: mediaDate,
       placeId: input.placeId ?? null,
-      description: input.description ?? null,
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -204,6 +214,36 @@ export function getMediaById(
     });
   }
   return ok(row);
+}
+
+/**
+ * Update media metadata.
+ */
+export function updateMedia(
+  db: BetterSQLite3Database,
+  id: string,
+  input: UpdateMediaInput,
+): Result<typeof media.$inferSelect> {
+  const existing = db.select().from(media).where(eq(media.id, id)).get();
+  if (!existing || existing.deletedAt) {
+    return err('NOT_FOUND', `Media with id '${id}' not found`, {
+      code: 'MEDIA_NOT_FOUND',
+    });
+  }
+
+  db.update(media)
+    .set({
+      ...(input.caption !== undefined && { caption: input.caption }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.notes !== undefined && { notes: input.notes }),
+      ...(input.date !== undefined && { date: input.date }),
+      ...(input.placeId !== undefined && { placeId: input.placeId }),
+      updatedAt: now(),
+    })
+    .where(eq(media.id, id))
+    .run();
+
+  return ok(mustGet(db.select().from(media).where(eq(media.id, id)).get()));
 }
 
 /**

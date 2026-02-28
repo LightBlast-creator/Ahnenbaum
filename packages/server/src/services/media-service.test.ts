@@ -149,6 +149,7 @@ describe('mediaService', () => {
       data: createMinimalJpeg(),
       caption: 'Family reunion 2020',
       description: 'Annual gathering',
+      notes: 'Some interesting details',
       date: '2020-07-15',
     });
 
@@ -156,6 +157,7 @@ describe('mediaService', () => {
     if (!result.ok) return;
     expect(result.data.caption).toBe('Family reunion 2020');
     expect(result.data.description).toBe('Annual gathering');
+    expect(result.data.notes).toBe('Some interesting details');
     expect(result.data.date).toBe('2020-07-15');
   });
 
@@ -241,6 +243,55 @@ describe('mediaService', () => {
 
   it('returns NOT_FOUND when deleting nonexistent media', async () => {
     const result = await mediaService.deleteMedia(db, storage, 'missing');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('NOT_FOUND');
+  });
+
+  // ── updateMedia ───────────────────────────────────────────────────
+
+  it('updates media metadata', async () => {
+    const uploaded = await mediaService.uploadMedia(db, storage, {
+      originalFilename: 'test.jpg',
+      mimeType: 'image/jpeg',
+      data: createMinimalJpeg(),
+      caption: 'Old caption',
+    });
+    if (!uploaded.ok) throw new Error('setup failed');
+
+    const result = mediaService.updateMedia(db, uploaded.data.id, {
+      caption: 'New caption',
+      notes: 'New notes',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.caption).toBe('New caption');
+    expect(result.data.notes).toBe('New notes');
+  });
+
+  it('partially updates media without overwriting other fields', async () => {
+    const uploaded = await mediaService.uploadMedia(db, storage, {
+      originalFilename: 'test.jpg',
+      mimeType: 'image/jpeg',
+      data: createMinimalJpeg(),
+      caption: 'Initial caption',
+      description: 'Initial description',
+    });
+    if (!uploaded.ok) throw new Error('setup failed');
+
+    const result = mediaService.updateMedia(db, uploaded.data.id, {
+      notes: 'Only updating notes',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.caption).toBe('Initial caption'); // unchanged
+    expect(result.data.description).toBe('Initial description'); // unchanged
+    expect(result.data.notes).toBe('Only updating notes');
+  });
+
+  it('updateMedia returns NOT_FOUND for missing media', () => {
+    const result = mediaService.updateMedia(db, 'nonexistent', { caption: 'Test' });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('NOT_FOUND');

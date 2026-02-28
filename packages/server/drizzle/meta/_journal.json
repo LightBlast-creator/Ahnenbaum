@@ -15,6 +15,13 @@
       "when": 1772061340705,
       "tag": "0001_puzzling_tiger_shark",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772298685501,
+      "tag": "0002_cold_shadow_king",
+      "breakpoints": true
     }
   ]
 }

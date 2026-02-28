@@ -137,7 +137,15 @@
   {/if}
 </div>
 
-<MediaViewer bind:open={viewerOpen} media={selectedMedia} onDelete={handleDeleteClick} />
+<MediaViewer
+  bind:open={viewerOpen}
+  media={selectedMedia}
+  onDelete={handleDeleteClick}
+  onToast={(msg, type) => {
+    toastMessage = msg;
+    toastType = type;
+  }}
+/>
 
 <ConfirmDialog
   bind:open={confirmOpen}

@@ -1,11 +1,14 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { api } from '$lib/api';
 
   let {
     open = $bindable(false),
     media,
     onDelete,
     onSetPrimary,
+    onUpdated,
+    onToast,
   }: {
     open: boolean;
     media?: {
@@ -15,16 +18,56 @@
       mimeType: string;
       caption?: string | null;
       description?: string | null;
+      notes?: string | null;
       date?: string | null;
       size: number;
     } | null;
     onDelete?: (id: string) => void;
     onSetPrimary?: (id: string) => void;
+    onUpdated?: (updatedMedia: Record<string, unknown>) => void;
+    onToast?: (message: string, type: 'success' | 'error') => void;
   } = $props();
 
   const API_BASE = '/api';
 
   const fileUrl = $derived(media ? `${API_BASE}/media/${media.id}/file` : '');
+
+  let captionValue = $state('');
+  let notesValue = $state('');
+  let isSaving = $state(false);
+  let originalCaption = $state('');
+  let originalNotes = $state('');
+
+  $effect(() => {
+    if (media) {
+      const cap = media.caption ?? '';
+      const notes = media.notes ?? '';
+      captionValue = cap;
+      notesValue = notes;
+      originalCaption = cap;
+      originalNotes = notes;
+    }
+  });
+
+  async function saveMetadata() {
+    if (!media || isSaving) return;
+    // Skip if nothing changed
+    if (captionValue === originalCaption && notesValue === originalNotes) return;
+    isSaving = true;
+    try {
+      const updated = await api.patch<NonNullable<typeof media>>(`media/${media.id}`, {
+        caption: captionValue || null,
+        notes: notesValue || null,
+      });
+      originalCaption = captionValue;
+      originalNotes = notesValue;
+      onUpdated?.(updated);
+    } catch {
+      onToast?.(m.toast_error(), 'error');
+    } finally {
+      isSaving = false;
+    }
+  }
 
   function close() {
     open = false;
@@ -33,6 +76,10 @@
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       event.preventDefault();
+      // Blur active element first so we don't trigger a save-then-close race
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       close();
     }
   }
@@ -75,11 +122,29 @@
       <aside class="viewer-sidebar">
         <button class="viewer-close" onclick={close} aria-label={m.shortcuts_close()}>✕</button>
 
-        <h3 class="viewer-title">{media.caption ?? media.originalFilename}</h3>
+        <input
+          type="text"
+          class="viewer-title-edit"
+          bind:value={captionValue}
+          placeholder={media.originalFilename}
+          onblur={saveMetadata}
+          aria-label="Caption"
+        />
 
         {#if media.description}
           <p class="viewer-desc">{media.description}</p>
         {/if}
+
+        <div class="viewer-notes">
+          <textarea
+            class="viewer-notes-edit"
+            bind:value={notesValue}
+            placeholder={m.media_notes_placeholder()}
+            onblur={saveMetadata}
+            rows="3"
+            aria-label={m.media_notes()}
+          ></textarea>
+        </div>
 
         <div class="viewer-details">
           <h4>{m.media_details()}</h4>
@@ -202,15 +267,56 @@
     color: var(--color-text);
   }
 
-  .viewer-title {
+  .viewer-title-edit {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     word-break: break-word;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-text);
+    padding: var(--space-1) var(--space-2);
+    margin: 0 calc(var(--space-2) * -1);
+    border-radius: var(--radius-sm);
+    width: calc(100% + var(--space-4));
+    outline: none;
+    transition: all var(--transition-fast);
+  }
+
+  .viewer-title-edit:focus,
+  .viewer-title-edit:hover {
+    border-color: var(--color-border);
+    background: var(--color-surface);
   }
 
   .viewer-desc {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
+  }
+
+  .viewer-notes {
+    margin-bottom: var(--space-2);
+  }
+
+  .viewer-notes-edit {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-text-secondary);
+    padding: var(--space-2);
+    margin: 0 calc(var(--space-2) * -1);
+    border-radius: var(--radius-md);
+    width: calc(100% + var(--space-4));
+    resize: vertical;
+    outline: none;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    min-height: 80px;
+  }
+
+  .viewer-notes-edit:focus,
+  .viewer-notes-edit:hover {
+    border-color: var(--color-border);
+    background: var(--color-surface);
   }
 
   .viewer-details h4 {

@@ -5,6 +5,7 @@
  *   POST   /api/media           — Upload a media file
  *   GET    /api/media           — List media (paginated, filterable)
  *   GET    /api/media/:id       — Get media metadata
+ *   PATCH  /api/media/:id       — Update media metadata
  *   GET    /api/media/:id/file  — Stream original file
  *   GET    /api/media/:id/thumb — Stream thumbnail
  *   DELETE /api/media/:id       — Soft-delete a media record
@@ -79,6 +80,21 @@ export function createMediaRoutes(
     if (id === 'file' || id === 'thumb') return c.notFound();
 
     const result = mediaService.getMediaById(db, id);
+    if (!result.ok) return apiError(c, result.error);
+    return apiSuccess(c, result.data);
+  });
+
+  // PATCH /api/media/:id — update metadata
+  router.patch('/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const result = mediaService.updateMedia(db, id, {
+      caption: body.caption,
+      description: body.description,
+      notes: body.notes,
+      date: body.date,
+      placeId: body.placeId,
+    });
     if (!result.ok) return apiError(c, result.error);
     return apiSuccess(c, result.data);
   });

@@ -18,6 +18,7 @@ export const media = sqliteTable('media', {
   date: text('date'),
   placeId: text('place_id').references(() => places.id),
   description: text('description'),
+  notes: text('notes'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
   deletedAt: text('deleted_at'),
