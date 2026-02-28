@@ -7,12 +7,14 @@
     isPrimary = false,
     caption,
     onClick,
+    onSetPrimary,
   }: {
     media: { id: string; type: string; originalFilename: string; caption?: string | null };
     type: string;
     isPrimary?: boolean;
     caption?: string | null;
     onClick?: () => void;
+    onSetPrimary?: () => void;
   } = $props();
 
   const API_BASE = '/api';
@@ -25,12 +27,18 @@
   };
 
   const thumbUrl = $derived(type === 'image' ? `${API_BASE}/media/${media.id}/thumb` : null);
+  const canSetPrimary = $derived(type === 'image' && !isPrimary && !!onSetPrimary);
 </script>
 
-<button
+<div
   class="media-card"
   class:primary={isPrimary}
+  role="button"
+  tabindex="0"
   onclick={onClick}
+  onkeydown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') onClick?.();
+  }}
   aria-label={caption ?? media.originalFilename}
 >
   <div class="card-preview">
@@ -42,11 +50,23 @@
     {#if isPrimary}
       <span class="primary-badge" title={m.media_is_primary()}>⭐</span>
     {/if}
+    {#if canSetPrimary}
+      <button
+        class="set-primary-btn"
+        title={m.media_set_primary()}
+        onclick={(e) => {
+          e.stopPropagation();
+          onSetPrimary?.();
+        }}
+      >
+        ⭐ {m.media_set_primary()}
+      </button>
+    {/if}
   </div>
   <div class="card-meta">
     <span class="card-name">{caption ?? media.originalFilename}</span>
   </div>
-</button>
+</div>
 
 <style>
   .media-card {
@@ -99,6 +119,31 @@
     background: rgba(0, 0, 0, 0.6);
     border-radius: var(--radius-full);
     padding: 2px 4px;
+  }
+
+  .set-primary-btn {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--space-2);
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    text-align: center;
+  }
+
+  .card-preview:hover .set-primary-btn {
+    opacity: 1;
+  }
+
+  .set-primary-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
   }
 
   .card-meta {

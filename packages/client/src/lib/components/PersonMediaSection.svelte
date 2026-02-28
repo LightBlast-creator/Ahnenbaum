@@ -7,9 +7,11 @@
   let {
     personId,
     onToast,
+    onPrimaryChanged,
   }: {
     personId: string;
     onToast: (message: string, type: 'success' | 'error') => void;
+    onPrimaryChanged?: () => void;
   } = $props();
 
   let personMediaItems = $state<{ link: PersonMediaLink; media: PersonMediaItem }[]>([]);
@@ -50,6 +52,17 @@
     loadMedia();
   }
 
+  async function handleSetPrimary(linkId: string) {
+    try {
+      await api.patch(`media-links/${linkId}`, { isPrimary: true });
+      onToast(m.media_is_primary(), 'success');
+      await loadMedia();
+      onPrimaryChanged?.();
+    } catch {
+      onToast(m.toast_error(), 'error');
+    }
+  }
+
   function openViewer(mediaId: string) {
     const item = personMediaItems.find((it) => it.media.id === mediaId);
     if (item) {
@@ -60,7 +73,12 @@
 </script>
 
 <div class="person-media-section">
-  <MediaGallery items={personMediaItems} onUpload={handleUpload} onItemClick={openViewer} />
+  <MediaGallery
+    items={personMediaItems}
+    onUpload={handleUpload}
+    onItemClick={openViewer}
+    onSetPrimary={handleSetPrimary}
+  />
 </div>
 
 <MediaViewer bind:open={viewerOpen} media={selectedMedia} />

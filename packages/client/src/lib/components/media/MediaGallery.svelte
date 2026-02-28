@@ -7,6 +7,7 @@
     items = [],
     onUpload,
     onItemClick,
+    onSetPrimary,
   }: {
     items: {
       link: {
@@ -19,6 +20,7 @@
     }[];
     onUpload?: (files: File[]) => void;
     onItemClick?: (mediaId: string) => void;
+    onSetPrimary?: (linkId: string) => void;
   } = $props();
 </script>
 
@@ -37,6 +39,7 @@
           isPrimary={item.link.isPrimary ?? false}
           caption={item.link.caption ?? item.media.caption}
           onClick={() => onItemClick?.(item.media.id)}
+          onSetPrimary={onSetPrimary ? () => onSetPrimary(item.link.id) : undefined}
         />
       {/each}
     </div>

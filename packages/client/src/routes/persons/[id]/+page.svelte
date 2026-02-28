@@ -274,7 +274,11 @@
           </button>
         {/if}
 
-        <PersonMediaSection {personId} onToast={handleMediaToast} />
+        <PersonMediaSection
+          {personId}
+          onToast={handleMediaToast}
+          onPrimaryChanged={() => refreshKey++}
+        />
         <PluginSlot slot="person.detail.tab" context={{ personId }} />
       </div>
       <aside class="person-sidebar">
