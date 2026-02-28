@@ -16,6 +16,7 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
+      - DATA_DIR=/app/packages/server/data
       - DATABASE_URL=/app/packages/server/data/ahnenbaum.db
       - AUTH_MODE=single-user
       - LOG_LEVEL=info

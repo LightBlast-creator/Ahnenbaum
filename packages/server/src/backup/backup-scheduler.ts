@@ -5,14 +5,14 @@
  * Configurable interval and retention count via environment variables.
  */
 
-import { existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readdirSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
 import type BetterSqlite3 from 'better-sqlite3';
 import { createLogger } from '../logging/logger';
+import { BACKUP_DIR } from '../paths';
 
 const logger = createLogger('backup');
 
-const BACKUP_DIR = resolve('data/backups');
 const INTERVAL_HOURS = Number(process.env.BACKUP_INTERVAL_HOURS) || 24;
 const RETAIN_COUNT = Number(process.env.BACKUP_RETAIN_COUNT) || 7;
 
@@ -22,7 +22,6 @@ export class BackupScheduler {
 
   constructor(sqlite: BetterSqlite3.Database) {
     this.sqlite = sqlite;
-    mkdirSync(BACKUP_DIR, { recursive: true });
   }
 
   /**

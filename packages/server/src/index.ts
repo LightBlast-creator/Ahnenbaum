@@ -9,6 +9,7 @@ import { PluginRouteRegistry } from './plugin-runtime/plugin-route-mount';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BackupScheduler } from './backup/backup-scheduler';
+import { ensureDataDirs, DATA_DIR } from './paths';
 
 // ── Process safety net — log instead of crashing silently ────────────
 process.on('unhandledRejection', (reason) => {
@@ -22,6 +23,10 @@ process.on('uncaughtException', (err) => {
 // ── Resolve paths relative to this file (works in Docker + local) ────
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// ── Ensure data directories exist ────────────────────────────────────
+ensureDataDirs();
+console.info(`[Server] DATA_DIR: ${DATA_DIR}`);
 
 // ── Boot database ────────────────────────────────────────────────────
 const { db, sqlite } = createDb();

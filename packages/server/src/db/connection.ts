@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import type BetterSqlite3 from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
+import { DATA_DIR } from '../paths';
 
 export interface DbConnection {
   db: BetterSQLite3Database;
@@ -19,7 +20,7 @@ export interface DbConnection {
  *             to read from `DATABASE_URL` env (default: `./data/ahnenbaum.db`).
  */
 export function createDb(url?: string): DbConnection {
-  const dbPath = url ?? process.env.DATABASE_URL ?? './data/ahnenbaum.db';
+  const dbPath = url ?? process.env.DATABASE_URL ?? join(DATA_DIR, 'ahnenbaum.db');
 
   // Auto-create parent directory (skip for in-memory databases)
   if (dbPath !== ':memory:') {

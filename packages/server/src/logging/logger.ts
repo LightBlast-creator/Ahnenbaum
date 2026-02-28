@@ -6,8 +6,9 @@
  * Configurable via LOG_LEVEL env var.
  */
 
-import { appendFileSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { appendFileSync, renameSync, statSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { LOG_DIR } from '../paths';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -40,21 +41,12 @@ function shouldLog(level: LogLevel): boolean {
 const isDev = process.env.NODE_ENV !== 'production';
 
 // ── File transport (production only) ────────────────────────────────
-const LOG_DIR = resolve('data/logs');
 const LOG_FILE = join(LOG_DIR, 'ahnenbaum.log');
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_ROTATED_FILES = 5;
 const ROTATION_CHECK_INTERVAL = 100; // check file size every N writes
 
 let writeCount = 0;
-
-if (!isDev) {
-  try {
-    mkdirSync(LOG_DIR, { recursive: true });
-  } catch {
-    // Best-effort — if we can't create it, file writes will silently fail
-  }
-}
 
 /**
  * Rotate log files when the current file exceeds MAX_FILE_SIZE.

@@ -17,6 +17,7 @@ import { createMediaLinkRoutes } from './routes/media-link-routes';
 import { createSearchRoutes } from './routes/search-routes';
 import { createTreeRoutes } from './routes/tree-routes';
 import { LocalStorageAdapter } from './storage/local-storage';
+import { MEDIA_DIR } from './paths';
 import type { StorageAdapter } from './storage/local-storage';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { PluginManager } from './plugin-runtime/plugin-manager';
@@ -72,7 +73,7 @@ export function createApp(
 
   // Mount API routes (only when a db is provided)
   if (db) {
-    const mediaStorage = storage ?? new LocalStorageAdapter('data/media');
+    const mediaStorage = storage ?? new LocalStorageAdapter(MEDIA_DIR);
     const eventBus = pluginManager?.getEventBus();
 
     app.route('/api/persons', createPersonRoutes(db, eventBus));

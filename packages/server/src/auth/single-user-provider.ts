@@ -7,10 +7,9 @@
 
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import type { Session } from '@ahnenbaum/core';
-
-const SESSION_SECRET_PATH = resolve('data/.session-secret');
+import { SESSION_SECRET_PATH } from '../paths';
 
 /**
  * Get or generate a persistent session secret.

@@ -105,3 +105,8 @@
 - Local dev servers resolve files from the filesystem regardless of git status. A newly created component (e.g., `EmptyState.svelte`) works locally but if it's untracked (`??` in `git status`), it won't be in the CI checkout and `svelte-check` fails with `Cannot find module`.
 - **Fix**: Before committing, run `git status` and check if any `??` (untracked) files are imported by staged/committed code. If so, stage them too.
 
+## Docker: CWD-relative paths don't match volume mounts
+- Using `resolve('data/media')` in server code resolves to `/app/data/media` (Docker WORKDIR `/app`), but volumes are mounted at `/app/packages/server/data/media`. All files at the CWD-relative path are ephemeral and lost on every rebuild.
+- Affected: media uploads, backups, logs, session secrets — anything writing to `data/` relative to CWD.
+- **Fix**: Centralize all data paths in a single `paths.ts` module using `DATA_DIR` env var. Docker sets `DATA_DIR=/app/packages/server/data` to match volume mounts. Default `data/` works for local dev. Never use `resolve('data/...')` directly in modules — import from `paths.ts`.
+
