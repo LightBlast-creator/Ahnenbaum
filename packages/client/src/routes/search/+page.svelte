@@ -122,7 +122,6 @@
         bind:value={query}
         oninput={handleInput}
         placeholder={m.search_placeholder()}
-        autofocus
       />
     </div>
   </header>

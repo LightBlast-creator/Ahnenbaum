@@ -49,3 +49,9 @@
 - This does **not** apply to: log messages, developer-facing error strings, or test fixtures.
 - Language files are in `packages/core/src/i18n/`. Keys use `snake_case` with dot-separated namespaces.
 
+## 8. Zero Warnings Policy
+
+- **`svelte-check` must produce 0 errors AND 0 warnings before committing.** CI exits with code 2 on warnings, so any warning = CI failure.
+- Never dismiss a warning as "pre-existing" or "not from our changes". If it's in the output, it's our problem.
+- If a warning can't be fixed (rare), suppress it with an inline `<!-- svelte-ignore -->` comment and document why.
+

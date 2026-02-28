@@ -91,3 +91,8 @@
 - `family-graph-layout.ts` checks `PARENT_CHILD_SET.has(edge.type)` — the set contains `'biological_parent'`, `'adoptive_parent'`, etc. Using `'parent-child'` as the edge type in tests causes edges to be treated as partner relationships.
 - **Fix**: Always use actual enum values from `@ahnenbaum/core` (e.g., `'biological_parent'`, `'marriage'`) in test fixtures.
 
+## CI: svelte-check warnings are failures — treat them as errors locally
+- `svelte-check` exits with code 2 when warnings are present. CI pipelines fail on any non-zero exit code, so warnings = CI failure.
+- Local runs may show exit 0 in some environments, masking the issue.
+- **Fix**: Never dismiss warnings as "pre-existing" or "not our problem". Fix ALL warnings before committing — they WILL break CI. When reviewing `svelte-check` output, 0 warnings is the only acceptable result.
+
