@@ -3,7 +3,15 @@
   import { formatDate } from '$lib/utils/date-format';
   import type { Event, Place } from '@ahnenbaum/core';
 
-  let { events }: { events: (Event & { place?: Place })[] } = $props();
+  let {
+    events,
+    onEdit,
+    onDelete,
+  }: {
+    events: (Event & { place?: Place })[];
+    onEdit?: (event: Event) => void;
+    onDelete?: (eventId: string) => void;
+  } = $props();
 
   const eventTypeLabels: Record<string, string> = {
     birth: '🎂',
@@ -21,20 +29,20 @@
     custom: '📝',
   };
 
-  const eventTypeNames: Record<string, string> = {
-    birth: 'Birth',
-    death: 'Death',
-    marriage: 'Marriage',
-    baptism: 'Baptism',
-    burial: 'Burial',
-    immigration: 'Immigration',
-    emigration: 'Emigration',
-    occupation: 'Occupation',
-    residence: 'Residence',
-    military_service: 'Military Service',
-    education: 'Education',
-    census: 'Census',
-    custom: 'Event',
+  const eventTypeNames: Record<string, () => string> = {
+    birth: () => m.event_type_birth(),
+    death: () => m.event_type_death(),
+    marriage: () => m.event_type_marriage(),
+    baptism: () => m.event_type_baptism(),
+    burial: () => m.event_type_burial(),
+    immigration: () => m.event_type_immigration(),
+    emigration: () => m.event_type_emigration(),
+    occupation: () => m.event_type_occupation(),
+    residence: () => m.event_type_residence(),
+    military_service: () => m.event_type_military_service(),
+    education: () => m.event_type_education(),
+    census: () => m.event_type_census(),
+    custom: () => m.event_type_custom(),
   };
 </script>
 
@@ -50,7 +58,7 @@
           <span class="event-icon" aria-hidden="true">{eventTypeLabels[event.type] ?? '📝'}</span>
           <div class="event-content">
             <div class="event-header">
-              <span class="event-type">{eventTypeNames[event.type] ?? event.type}</span>
+              <span class="event-type">{eventTypeNames[event.type]?.() ?? event.type}</span>
               {#if event.date}
                 <span class="event-date">{formatDate(event.date)}</span>
               {/if}
@@ -69,6 +77,30 @@
               <p class="event-notes">{event.notes}</p>
             {/if}
           </div>
+          {#if onEdit || onDelete}
+            <div class="event-actions">
+              {#if onEdit}
+                <button
+                  class="action-btn"
+                  onclick={() => onEdit(event)}
+                  aria-label={m.event_edit()}
+                  title={m.event_edit()}
+                >
+                  ✏️
+                </button>
+              {/if}
+              {#if onDelete}
+                <button
+                  class="action-btn action-btn-danger"
+                  onclick={() => onDelete(event.id)}
+                  aria-label={m.event_delete()}
+                  title={m.event_delete()}
+                >
+                  🗑️
+                </button>
+              {/if}
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -147,5 +179,36 @@
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     font-style: italic;
+  }
+
+  .event-actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+
+  .event-item:hover .event-actions {
+    opacity: 1;
+  }
+
+  .action-btn {
+    padding: var(--space-1);
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    border-radius: var(--radius-md);
+    opacity: 0.6;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+  }
+
+  .action-btn:hover {
+    opacity: 1;
+    background: var(--color-surface-hover);
+  }
+
+  .action-btn-danger:hover {
+    background: var(--color-danger-light, rgba(239, 68, 68, 0.1));
   }
 </style>

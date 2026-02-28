@@ -1,10 +1,10 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { api } from '$lib/api';
   import MediaGallery from '$lib/components/media/MediaGallery.svelte';
   import MediaViewer from '$lib/components/media/MediaViewer.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import Toast from '$lib/components/Toast.svelte';
-
-  const API_BASE = '/api';
 
   interface MediaItem {
     id: string;
@@ -28,22 +28,21 @@
   let viewerOpen = $state(false);
   let toastMessage = $state('');
   let toastType: 'success' | 'error' = $state('success');
+  let confirmOpen = $state(false);
+  let pendingDeleteId = $state<string | null>(null);
   let filterType = $state('');
 
   async function loadMedia() {
     loading = true;
     try {
-      const url = filterType
-        ? `${API_BASE}/media?limit=100&type=${filterType}`
-        : `${API_BASE}/media?limit=100`;
-      const res = await fetch(url);
-      const json = await res.json();
-      if (json.ok) {
-        mediaItems = json.data.media.map((m: MediaItem) => ({
-          link: { id: m.id, isPrimary: false, caption: m.caption, sortOrder: null },
-          media: m,
-        }));
-      }
+      const params: Record<string, string | number> = { limit: 100 };
+      if (filterType) params.type = filterType;
+
+      const data = await api.get<{ media: MediaItem[]; total: number }>('media', params);
+      mediaItems = data.media.map((item: MediaItem) => ({
+        link: { id: item.id, isPrimary: false, caption: item.caption, sortOrder: null },
+        media: item,
+      }));
     } catch {
       toastMessage = m.toast_error();
       toastType = 'error';
@@ -62,18 +61,9 @@
       formData.append('file', file);
 
       try {
-        const res = await fetch(`${API_BASE}/media`, {
-          method: 'POST',
-          body: formData,
-        });
-        const json = await res.json();
-        if (json.ok) {
-          toastMessage = m.toast_media_uploaded();
-          toastType = 'success';
-        } else {
-          toastMessage = json.error?.message ?? m.media_upload_error();
-          toastType = 'error';
-        }
+        await api.postFormData<{ id: string }>('media', formData);
+        toastMessage = m.toast_media_uploaded();
+        toastType = 'success';
       } catch {
         toastMessage = m.media_upload_error();
         toastType = 'error';
@@ -90,13 +80,19 @@
     }
   }
 
-  async function handleDelete(mediaId: string) {
-    if (!confirm(m.media_delete_confirm())) return;
+  function handleDeleteClick(mediaId: string) {
+    pendingDeleteId = mediaId;
+    confirmOpen = true;
+  }
+
+  async function executeDelete() {
+    if (!pendingDeleteId) return;
     try {
-      await fetch(`${API_BASE}/media/${mediaId}`, { method: 'DELETE' });
+      await api.del(`media/${pendingDeleteId}`);
       toastMessage = m.toast_media_deleted();
       toastType = 'success';
       viewerOpen = false;
+      pendingDeleteId = null;
       loadMedia();
     } catch {
       toastMessage = m.toast_error();
@@ -140,7 +136,16 @@
   {/if}
 </div>
 
-<MediaViewer bind:open={viewerOpen} media={selectedMedia} onDelete={handleDelete} />
+<MediaViewer bind:open={viewerOpen} media={selectedMedia} onDelete={handleDeleteClick} />
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title={m.media_delete()}
+  message={m.media_delete_confirm()}
+  confirmLabel={m.media_delete()}
+  variant="danger"
+  onConfirm={executeDelete}
+/>
 
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 

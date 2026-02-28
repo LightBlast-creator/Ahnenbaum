@@ -51,6 +51,8 @@
     const sectionLabels: Record<string, () => string> = {
       persons: () => m.nav_people(),
       tree: () => m.nav_tree(),
+      media: () => m.nav_media(),
+      search: () => m.search_title(),
     };
 
     // First segment (section)

@@ -1,8 +1,7 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { api } from '$lib/api';
   import Toast from '$lib/components/Toast.svelte';
-
-  const API_BASE = '/api';
 
   interface SearchResult {
     type: string;
@@ -55,17 +54,13 @@
 
     loading = true;
     try {
-      let url = `${API_BASE}/search?q=${encodeURIComponent(query)}&page=${page}&limit=20`;
-      if (filterType) url += `&type=${encodeURIComponent(filterType)}`;
+      const params: Record<string, string | number> = { q: query, page, limit: 20 };
+      if (filterType) params.type = filterType;
 
-      const res = await fetch(url);
-      const json = await res.json();
-      if (json.ok) {
-        const data = json.data as SearchResponse;
-        results = data.results;
-        total = data.total;
-        facets = data.facets;
-      }
+      const data = await api.get<SearchResponse>('search', params);
+      results = data.results;
+      total = data.total;
+      facets = data.facets;
     } catch {
       toastMessage = m.toast_error();
       toastType = 'error';

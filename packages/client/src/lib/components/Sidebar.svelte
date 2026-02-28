@@ -10,6 +10,8 @@
     { href: '/', label: m.nav_home(), icon: 'home' },
     { href: '/persons', label: m.nav_people(), icon: 'users' },
     { href: '/tree', label: m.nav_tree(), icon: 'tree' },
+    { href: '/media', label: m.nav_media(), icon: 'media' },
+    { href: '/search', label: m.search_title(), icon: 'search' },
   ]);
 
   function isActive(href: string): boolean {
@@ -80,6 +82,34 @@
               ><path d="M12 22V8" /><path d="M5 12H2a10 10 0 0 0 20 0h-3" /><path
                 d="M8 8a4 4 0 1 1 8 0"
               /></svg
+            >
+          {:else if item.icon === 'media'}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle
+                cx="8.5"
+                cy="8.5"
+                r="1.5"
+              /><polyline points="21 15 16 10 5 21" /></svg
+            >
+          {:else if item.icon === 'search'}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
             >
           {/if}
         </span>

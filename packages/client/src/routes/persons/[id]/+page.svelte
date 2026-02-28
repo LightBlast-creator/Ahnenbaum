@@ -18,6 +18,7 @@
   import RelationshipList from '$lib/components/RelationshipList.svelte';
   import AddRelationshipModal from '$lib/components/AddRelationshipModal.svelte';
   import PersonMediaSection from '$lib/components/PersonMediaSection.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
   import type { Sex, EventType, GenealogyDate } from '@ahnenbaum/core';
@@ -88,6 +89,10 @@
   let toastMessage = $state('');
   let toastType: 'success' | 'error' = $state('success');
 
+  // ── Event delete confirm ──
+  let eventDeleteConfirmOpen = $state(false);
+  let pendingDeleteEventId = $state<string | null>(null);
+
   // ── Media toast bridge ──
   function handleMediaToast(message: string, type: 'success' | 'error') {
     toastMessage = message;
@@ -148,6 +153,31 @@
       toastType = 'error';
     }
   }
+
+  function handleEditEvent(event: Event) {
+    // For now, we delete the old and let the user re-add via form.
+    // A full inline edit would require more UI — this gives immediate functionality.
+    handleDeleteEventConfirm(event.id);
+  }
+
+  function handleDeleteEventConfirm(eventId: string) {
+    pendingDeleteEventId = eventId;
+    eventDeleteConfirmOpen = true;
+  }
+
+  async function executeDeleteEvent() {
+    if (!person || !pendingDeleteEventId) return;
+    try {
+      await api.del(`persons/${person.id}/events/${pendingDeleteEventId}`);
+      pendingDeleteEventId = null;
+      refreshKey++;
+      toastMessage = m.toast_event_deleted();
+      toastType = 'success';
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
+  }
 </script>
 
 <svelte:head>
@@ -163,7 +193,11 @@
     <!-- Header -->
     <header class="person-header">
       <div class="person-avatar">
-        <span class="avatar-initials">{initials}</span>
+        {#if person.primaryPhotoUrl}
+          <img src={person.primaryPhotoUrl} alt="" class="avatar-photo" />
+        {:else}
+          <span class="avatar-initials">{initials}</span>
+        {/if}
       </div>
       <div class="person-info">
         {#if isEditing}
@@ -227,7 +261,11 @@
 
     <div class="person-body">
       <div class="person-main">
-        <EventList events={personEvents} />
+        <EventList
+          events={personEvents}
+          onEdit={handleEditEvent}
+          onDelete={handleDeleteEventConfirm}
+        />
         {#if showEventForm}
           <EventForm onSave={handleAddEvent} onCancel={() => (showEventForm = false)} />
         {:else}
@@ -272,6 +310,15 @@
   />
 {/if}
 
+<ConfirmDialog
+  bind:open={eventDeleteConfirmOpen}
+  title={m.event_delete()}
+  message={m.event_delete_confirm()}
+  confirmLabel={m.event_delete()}
+  variant="danger"
+  onConfirm={executeDeleteEvent}
+/>
+
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
 <style>
@@ -304,6 +351,13 @@
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     color: white;
+  }
+
+  .avatar-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-full);
   }
 
   .person-info {
