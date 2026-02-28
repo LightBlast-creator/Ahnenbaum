@@ -231,7 +231,11 @@
             <tr>
               <td class="col-avatar">
                 <a href="{base}/persons/{person.id}" class="avatar-link">
-                  <span class="row-avatar">{getInitials(person)}</span>
+                  {#if person.primaryPhotoUrl}
+                    <img src={person.primaryPhotoUrl} alt="" class="row-avatar row-avatar-photo" />
+                  {:else}
+                    <span class="row-avatar">{getInitials(person)}</span>
+                  {/if}
                 </a>
               </td>
               <td>
@@ -415,6 +419,11 @@
     border-radius: var(--radius-full);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
+  }
+
+  .row-avatar-photo {
+    object-fit: cover;
+    background: none;
   }
 
   .sort-btn {

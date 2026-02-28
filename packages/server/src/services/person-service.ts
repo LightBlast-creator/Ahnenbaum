@@ -12,7 +12,7 @@ import { eq, isNull, and } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
-import { persons, personNames, events, relationships } from '../db/schema/index';
+import { persons, personNames, events, relationships, mediaLinks } from '../db/schema/index';
 import { mustGet, countRows } from '../db/db-helpers';
 import { now, uuid } from '../db/helpers';
 
@@ -166,7 +166,20 @@ export function getPersonById(
     .all()
     .filter((e) => !e.deletedAt);
 
-  return ok({ ...person, names, events: personEvents });
+  // Primary photo lookup
+  const primaryLink = db
+    .select({ mediaId: mediaLinks.mediaId })
+    .from(mediaLinks)
+    .where(
+      and(
+        eq(mediaLinks.linkedEntityType, 'person'),
+        eq(mediaLinks.linkedEntityId, id),
+        eq(mediaLinks.isPrimary, true),
+      ),
+    )
+    .get();
+
+  return ok({ ...person, names, events: personEvents, primaryMediaId: primaryLink?.mediaId });
 }
 
 export function listPersons(
@@ -237,6 +250,7 @@ export interface PersonWithDetailsRow {
   updatedAt: string;
   names: PersonNameRow[];
   events: EventRow[];
+  primaryMediaId?: string;
 }
 
 /**
@@ -256,6 +270,16 @@ export function listPersonsWithDetails(
 
   const rows = db.select().from(persons).where(whereClause).limit(limit).offset(offset).all();
 
+  // Bulk-load primary media links for all persons on this page
+  const personIds = rows.map((p) => p.id);
+  const primaryLinks = db
+    .select({ entityId: mediaLinks.linkedEntityId, mediaId: mediaLinks.mediaId })
+    .from(mediaLinks)
+    .where(and(eq(mediaLinks.linkedEntityType, 'person'), eq(mediaLinks.isPrimary, true)))
+    .all()
+    .filter((l) => personIds.includes(l.entityId));
+  const primaryMap = new Map(primaryLinks.map((l) => [l.entityId, l.mediaId]));
+
   const enriched: PersonWithDetailsRow[] = rows.map((person) => {
     const names = db.select().from(personNames).where(eq(personNames.personId, person.id)).all();
     const personEvents = db
@@ -274,6 +298,7 @@ export function listPersonsWithDetails(
       updatedAt: person.updatedAt,
       names,
       events: personEvents,
+      primaryMediaId: primaryMap.get(person.id),
     };
   });
 
@@ -392,6 +417,14 @@ export function getFullFamilyTree(db: BetterSQLite3Database): Result<FullFamilyT
     eventsByPerson.set(event.personId, list);
   }
 
+  // Bulk-load primary media links for all persons
+  const allPrimaryLinks = db
+    .select({ entityId: mediaLinks.linkedEntityId, mediaId: mediaLinks.mediaId })
+    .from(mediaLinks)
+    .where(and(eq(mediaLinks.linkedEntityType, 'person'), eq(mediaLinks.isPrimary, true)))
+    .all();
+  const primaryMap = new Map(allPrimaryLinks.map((l) => [l.entityId, l.mediaId]));
+
   const enrichedPersons: PersonWithDetailsRow[] = allPersons.map((person) => ({
     id: person.id,
     sex: person.sex,
@@ -401,6 +434,7 @@ export function getFullFamilyTree(db: BetterSQLite3Database): Result<FullFamilyT
     updatedAt: person.updatedAt,
     names: namesByPerson.get(person.id) ?? [],
     events: eventsByPerson.get(person.id) ?? [],
+    primaryMediaId: primaryMap.get(person.id),
   }));
 
   return ok({ persons: enrichedPersons, relationships: allRels });
@@ -430,6 +464,7 @@ export function buildAncestorTree(
       updatedAt: person.updatedAt,
       names: person.names,
       events: person.events,
+      primaryMediaId: person.primaryMediaId,
     };
 
     if (depth <= 1) {

@@ -38,10 +38,27 @@
   <rect width={CARD_WIDTH} height={CARD_HEIGHT} rx="8" ry="8" class="card-bg" />
 
   <!-- Avatar circle -->
-  <circle cx="30" cy={CARD_HEIGHT / 2} r="18" class="card-avatar" />
-  <text x="30" y={CARD_HEIGHT / 2 + 5} text-anchor="middle" class="card-initials">
-    {initials}
-  </text>
+  <defs>
+    <clipPath id="avatar-clip-{person.id}">
+      <circle cx="30" cy={CARD_HEIGHT / 2} r="18" />
+    </clipPath>
+  </defs>
+  {#if person.primaryPhotoUrl}
+    <image
+      href={person.primaryPhotoUrl}
+      x="12"
+      y={CARD_HEIGHT / 2 - 18}
+      width="36"
+      height="36"
+      clip-path="url(#avatar-clip-{person.id})"
+      preserveAspectRatio="xMidYMid slice"
+    />
+  {:else}
+    <circle cx="30" cy={CARD_HEIGHT / 2} r="18" class="card-avatar" />
+    <text x="30" y={CARD_HEIGHT / 2 + 5} text-anchor="middle" class="card-initials">
+      {initials}
+    </text>
+  {/if}
 
   <!-- Name and dates -->
   <text x="56" y={CARD_HEIGHT / 2 - 6} class="card-name">

@@ -210,6 +210,8 @@ export interface PersonWithDetails extends Person {
   birthEvent?: Event;
   deathEvent?: Event;
   birthPlace?: Place;
+  /** Thumbnail URL for primary photo, if set. */
+  primaryPhotoUrl?: string;
 }
 
 /** TreeNode for ancestor pedigree rendering. */
@@ -278,6 +280,7 @@ export interface ServerPersonResponse {
   deletedAt: string | null;
   names: ServerPersonNameResponse[];
   events: ServerEventResponse[];
+  primaryMediaId?: string;
 }
 
 interface ServerPersonNameResponse {
@@ -365,6 +368,7 @@ export function toPersonWithDetails(
     birthEvent,
     deathEvent,
     birthPlace,
+    primaryPhotoUrl: raw.primaryMediaId ? `/api/media/${raw.primaryMediaId}/thumb` : undefined,
   };
 }
 
