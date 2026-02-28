@@ -13,9 +13,9 @@ description: How to write commit messages following conventional commits for the
 Run **every** check below before committing:
 
 ```bash
-# 1. TypeScript type-check + build (~2-3s)
+# 1. Full typecheck — mirrors CI exactly (tsc --noEmit for core+server, svelte-check for client)
 // turbo
-npm run build
+npm run typecheck
 
 # 2. Unit & integration tests (Vitest)
 // turbo

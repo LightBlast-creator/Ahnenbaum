@@ -151,7 +151,7 @@ export function createPerson(
 export function getPersonById(
   db: BetterSQLite3Database,
   id: string,
-): Result<PersonRow & { names: PersonNameRow[]; events: EventRow[] }> {
+): Result<PersonRow & { names: PersonNameRow[]; events: EventRow[]; primaryMediaId?: string }> {
   const person = db.select().from(persons).where(eq(persons.id, id)).get();
 
   if (!person || person.deletedAt) {

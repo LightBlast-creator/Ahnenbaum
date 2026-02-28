@@ -96,3 +96,8 @@
 - Local runs may show exit 0 in some environments, masking the issue.
 - **Fix**: Never dismiss warnings as "pre-existing" or "not our problem". Fix ALL warnings before committing — they WILL break CI. When reviewing `svelte-check` output, 0 warnings is the only acceptable result.
 
+## Pre-commit: Vitest does NOT catch type errors — always run `npm run typecheck`
+- Vitest transpiles TypeScript at runtime (via esbuild) and strips types — it does NOT type-check. Code with `TS2339: Property does not exist` errors will still pass `vitest run` with all greens.
+- CI runs `tsc --noEmit` separately via `npm run typecheck`. If you only run `vitest`, you'll get green locally but red in CI.
+- **Fix**: Always run `npm run typecheck` (not just `npm run test` or `npm run build`) before committing. This mirrors exactly what CI does. The commit workflow has been updated to enforce this.
+

@@ -10,7 +10,7 @@ function makePlugin(name: string, routes: RouteDefinition[] = []): AhnenbaumPlug
   return {
     name,
     version: '1.0.0',
-    activate: () => {},
+    activate: async () => {},
     routes,
   };
 }
