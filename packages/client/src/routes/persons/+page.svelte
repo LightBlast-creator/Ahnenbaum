@@ -12,6 +12,7 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import PersonsTable from '$lib/components/PersonsTable.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
+  import EmptyState from '$lib/components/EmptyState.svelte';
 
   let searchQuery = $state('');
   let sortBy: GetPersonsOptions['sortBy'] = $state('name');
@@ -186,13 +187,19 @@
   </div>
 
   {#if result.total === 0}
-    <div class="empty-state">
-      {#if debouncedSearch}
-        <p>{m.person_no_results()}</p>
-      {:else}
-        <p>{m.person_no_persons()}</p>
-      {/if}
-    </div>
+    {#if debouncedSearch}
+      <EmptyState icon="search" title={m.person_no_results()} />
+    {:else}
+      <EmptyState
+        icon="people"
+        title={m.person_no_persons()}
+        actionLabel={m.person_add()}
+        onAction={() => {
+          const event = new KeyboardEvent('keydown', { key: 'n', metaKey: true, bubbles: true });
+          window.dispatchEvent(event);
+        }}
+      />
+    {/if}
   {:else}
     <PersonsTable
       items={result.items}
@@ -268,12 +275,6 @@
   .search-input:focus {
     border-color: var(--color-primary);
     outline: none;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: var(--space-16) 0;
-    color: var(--color-text-muted);
   }
 
   @media (max-width: 768px) {

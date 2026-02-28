@@ -101,3 +101,7 @@
 - CI runs `tsc --noEmit` separately via `npm run typecheck`. If you only run `vitest`, you'll get green locally but red in CI.
 - **Fix**: Always run `npm run typecheck` (not just `npm run test` or `npm run build`) before committing. This mirrors exactly what CI does. The commit workflow has been updated to enforce this.
 
+## Pre-commit: Check `git status` for untracked files that are imported
+- Local dev servers resolve files from the filesystem regardless of git status. A newly created component (e.g., `EmptyState.svelte`) works locally but if it's untracked (`??` in `git status`), it won't be in the CI checkout and `svelte-check` fails with `Cannot find module`.
+- **Fix**: Before committing, run `git status` and check if any `??` (untracked) files are imported by staged/committed code. If so, stage them too.
+

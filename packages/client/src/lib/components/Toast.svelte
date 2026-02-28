@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fly } from 'svelte/transition';
+
   let {
     message = '',
     type = 'success' as 'success' | 'error',
@@ -20,7 +22,13 @@
 </script>
 
 {#if message}
-  <div class="toast" class:error={type === 'error'} role="alert">
+  <div
+    class="toast"
+    class:error={type === 'error'}
+    role="alert"
+    in:fly={{ y: 60, duration: 250 }}
+    out:fly={{ y: 60, duration: 200 }}
+  >
     <span class="toast-icon">{type === 'error' ? '❌' : '✅'}</span>
     <span class="toast-message">{message}</span>
     <button class="toast-close" onclick={onDismiss} aria-label="Close">×</button>
@@ -41,7 +49,6 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     z-index: var(--z-toast);
-    animation: slide-in 200ms ease;
   }
 
   .toast.error {
@@ -62,16 +69,5 @@
 
   .toast-close:hover {
     color: var(--color-text);
-  }
-
-  @keyframes slide-in {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
   }
 </style>

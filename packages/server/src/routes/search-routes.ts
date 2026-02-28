@@ -17,8 +17,9 @@ import type { SearchEntityType } from '../services/search-service';
 export function createSearchRoutes(db: BetterSQLite3Database): Hono {
   const router = new Hono();
 
-  // Ensure FTS5 index exists
+  // Ensure FTS5 index exists and populate it
   searchService.ensureSearchIndex(db);
+  searchService.rebuildIndex(db);
 
   // GET /api/search?q=...
   router.get('/', (c) => {

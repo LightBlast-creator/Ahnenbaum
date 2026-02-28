@@ -1,5 +1,7 @@
 <script lang="ts">
   import '$lib/styles/global.css';
+  import { fade } from 'svelte/transition';
+  import { page } from '$app/state';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import Header from '$lib/components/Header.svelte';
   import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
@@ -65,17 +67,33 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
+<a href="#main-content" class="skip-link">Skip to content</a>
+
 <ConnectionBanner />
 
 <div class="app-layout">
   <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
 
+  <!-- Mobile backdrop -->
+  {#if !sidebarCollapsed}
+    <button
+      class="sidebar-backdrop"
+      onclick={toggleSidebar}
+      aria-label="Close sidebar"
+      tabindex="-1"
+    ></button>
+  {/if}
+
   <div class="app-main">
     <Header onSearchClick={handleSearchClick} onAddPerson={handleAddPerson} />
 
-    <main class="app-content">
+    <main id="main-content" class="app-content">
       <Breadcrumbs />
-      {@render children()}
+      {#key page.url.pathname}
+        <div class="page-transition" in:fade={{ duration: 150, delay: 50 }}>
+          {@render children()}
+        </div>
+      {/key}
     </main>
   </div>
 </div>
@@ -83,3 +101,21 @@
 <AddPersonModal bind:open={showAddPerson} />
 <CommandPalette bind:open={showSearch} />
 <ShortcutOverlay bind:open={showShortcuts} />
+
+<style>
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: calc(var(--z-overlay) - 1);
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(2px);
+      cursor: default;
+    }
+  }
+</style>

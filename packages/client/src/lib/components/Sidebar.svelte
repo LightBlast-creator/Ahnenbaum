@@ -7,11 +7,10 @@
   let { collapsed = false, onToggle }: { collapsed: boolean; onToggle: () => void } = $props();
 
   const navItems = $derived([
-    { href: '/', label: m.nav_home(), icon: 'home' },
-    { href: '/persons', label: m.nav_people(), icon: 'users' },
-    { href: '/tree', label: m.nav_tree(), icon: 'tree' },
-    { href: '/media', label: m.nav_media(), icon: 'media' },
-    { href: '/search', label: m.search_title(), icon: 'search' },
+    { href: '/', label: m.nav_home(), icon: 'home', shortcut: '' },
+    { href: '/persons', label: m.nav_people(), icon: 'users', shortcut: '' },
+    { href: '/tree', label: m.nav_tree(), icon: 'tree', shortcut: '' },
+    { href: '/media', label: m.nav_media(), icon: 'media', shortcut: '' },
   ]);
 
   function isActive(href: string): boolean {
@@ -115,6 +114,9 @@
         </span>
         {#if !collapsed}
           <span class="nav-label">{item.label}</span>
+          {#if item.shortcut}
+            <kbd class="nav-shortcut">{item.shortcut}</kbd>
+          {/if}
         {/if}
       </a>
     {/each}
@@ -229,6 +231,24 @@
 
   .nav-label {
     font-size: var(--font-size-sm);
+    flex: 1;
+  }
+
+  .nav-shortcut {
+    font-size: 10px;
+    padding: 1px 5px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-family: var(--font-family);
+    line-height: 1.4;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+
+  .nav-item:hover .nav-shortcut {
+    opacity: 1;
   }
 
   .sidebar-toggle {

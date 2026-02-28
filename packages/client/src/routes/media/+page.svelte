@@ -5,6 +5,7 @@
   import MediaViewer from '$lib/components/media/MediaViewer.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import Toast from '$lib/components/Toast.svelte';
+  import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
 
   interface MediaItem {
     id: string;
@@ -130,7 +131,7 @@
   </header>
 
   {#if loading}
-    <div class="loading">Loading…</div>
+    <SkeletonLoader variant="card" count={6} />
   {:else}
     <MediaGallery items={mediaItems} onUpload={handleUpload} onItemClick={openViewer} />
   {/if}
@@ -194,12 +195,6 @@
 
   .filter-btn:hover:not(.active) {
     color: var(--color-text);
-  }
-
-  .loading {
-    text-align: center;
-    padding: var(--space-16);
-    color: var(--color-text-muted);
   }
 
   @media (max-width: 768px) {

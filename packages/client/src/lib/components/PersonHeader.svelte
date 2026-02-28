@@ -2,6 +2,7 @@
   import type { PersonWithDetails } from '$lib/api';
   import type { Sex } from '@ahnenbaum/core';
   import { sexOptions } from '$lib/constants';
+  import { calculateAge } from '$lib/utils/date-format';
   import * as m from '$lib/paraglide/messages';
 
   interface Props {
@@ -42,7 +43,7 @@
 </script>
 
 <header class="person-header">
-  <div class="person-avatar">
+  <div class="person-avatar" data-sex={person.sex}>
     {#if person.primaryPhotoUrl}
       <img src={person.primaryPhotoUrl} alt="" class="avatar-photo" />
     {:else}
@@ -84,7 +85,14 @@
         {person.preferredName.surname}
       </h1>
       {#if lifespan}
-        <span class="person-lifespan">{lifespan}</span>
+        <span class="person-lifespan">
+          {lifespan}
+          {#if calculateAge(person.birthEvent?.date, person.deathEvent?.date)}
+            <span class="person-age"
+              >{calculateAge(person.birthEvent?.date, person.deathEvent?.date)}</span
+            >
+          {/if}
+        </span>
       {/if}
       {#if person.birthPlace}
         <span class="person-place">📍 {person.birthPlace.name}</span>
@@ -149,6 +157,28 @@
     height: 80px;
     background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
     border-radius: var(--radius-full);
+    box-shadow:
+      0 0 0 3px var(--color-bg),
+      0 0 0 5px var(--color-border);
+    transition: box-shadow var(--transition-fast);
+  }
+
+  .person-avatar[data-sex='male'] {
+    box-shadow:
+      0 0 0 3px var(--color-bg),
+      0 0 0 5px #5b8dd9;
+  }
+
+  .person-avatar[data-sex='female'] {
+    box-shadow:
+      0 0 0 3px var(--color-bg),
+      0 0 0 5px #d97ba3;
+  }
+
+  .person-avatar[data-sex='intersex'] {
+    box-shadow:
+      0 0 0 3px var(--color-bg),
+      0 0 0 5px #b89c5a;
   }
 
   .avatar-initials {
@@ -179,6 +209,12 @@
   .person-lifespan {
     font-size: var(--font-size-lg);
     color: var(--color-text-secondary);
+  }
+
+  .person-age {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-left: var(--space-1);
   }
 
   .person-place {

@@ -95,3 +95,19 @@ export function formatLifespan(birthDate?: GenealogyDate, deathDate?: GenealogyD
   if (birth) return `${birth}–`;
   return `–${death}`;
 }
+
+/**
+ * Calculate age from birth and optional death dates.
+ * Returns a string like "(78 years)" or "(32 years)" or "".
+ */
+export function calculateAge(birthDate?: GenealogyDate, deathDate?: GenealogyDate): string {
+  const birthYear = parseInt(extractYear(birthDate), 10);
+  if (!birthYear || isNaN(birthYear)) return '';
+
+  const deathYear = parseInt(extractYear(deathDate), 10);
+  const referenceYear = !isNaN(deathYear) && deathYear > 0 ? deathYear : new Date().getFullYear();
+
+  const age = referenceYear - birthYear;
+  if (age < 0 || age > 150) return '';
+  return `(${age})`;
+}
