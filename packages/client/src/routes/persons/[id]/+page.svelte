@@ -4,7 +4,6 @@
   import * as m from '$lib/paraglide/messages';
   import { api, type PersonWithDetails, type RelationshipEntry } from '$lib/api';
   import type { Event } from '@ahnenbaum/core';
-  import { sexOptions } from '$lib/constants';
   import { formatLifespan } from '$lib/utils/date-format';
   import {
     loadPerson as fetchPerson,
@@ -13,6 +12,7 @@
     loadExtendedFamily as fetchExtendedFamily,
     type ExtendedFamilyData,
   } from '$lib/person-data';
+  import PersonHeader from '$lib/components/PersonHeader.svelte';
   import EventList from '$lib/components/EventList.svelte';
   import EventForm from '$lib/components/EventForm.svelte';
   import RelationshipList from '$lib/components/RelationshipList.svelte';
@@ -190,74 +190,23 @@
 
 {#if person}
   <div class="person-detail">
-    <!-- Header -->
-    <header class="person-header">
-      <div class="person-avatar">
-        {#if person.primaryPhotoUrl}
-          <img src={person.primaryPhotoUrl} alt="" class="avatar-photo" />
-        {:else}
-          <span class="avatar-initials">{initials}</span>
-        {/if}
-      </div>
-      <div class="person-info">
-        {#if isEditing}
-          <div class="edit-name-row">
-            <input class="edit-input" bind:value={editGiven} placeholder={m.person_given_name()} />
-            <input class="edit-input" bind:value={editSurname} placeholder={m.person_surname()} />
-          </div>
-          <div class="edit-field">
-            <label for="edit-sex">{m.person_sex()}</label>
-            <select id="edit-sex" class="edit-select" bind:value={editSex}>
-              {#each sexOptions as opt (opt.value)}
-                <option value={opt.value}>{opt.label()}</option>
-              {/each}
-            </select>
-          </div>
-        {:else}
-          <h1 class="person-name">
-            {person.preferredName.given}
-            {person.preferredName.surname}
-          </h1>
-          {#if lifespan}
-            <span class="person-lifespan">{lifespan}</span>
-          {/if}
-          {#if person.birthPlace}
-            <span class="person-place">📍 {person.birthPlace.name}</span>
-          {/if}
-          {#if person.allNames.length > 1}
-            <div class="person-names-alt">
-              {#each person.allNames.filter((n) => !n.isPreferred) as name (name.id)}
-                <span class="name-badge">
-                  {name.given}
-                  {name.surname}
-                  <small>({name.type})</small>
-                </span>
-              {/each}
-            </div>
-          {/if}
-        {/if}
-      </div>
-      <div class="header-actions">
-        {#if isEditing}
-          <button class="btn-secondary" onclick={cancelEdit}>{m.person_cancel()}</button>
-          <button class="btn-primary" onclick={saveEdit}>{m.person_save()}</button>
-        {:else}
-          <button class="btn-edit" onclick={startEdit} aria-label={m.person_edit()}>
-            ✏️ {m.person_edit()}
-          </button>
-        {/if}
-      </div>
-    </header>
-
-    <!-- Notes -->
-    <section class="person-notes">
-      {#if isEditing}
-        <label for="edit-notes" class="notes-label">{m.person_notes()}</label>
-        <textarea id="edit-notes" class="edit-textarea" bind:value={editNotes} rows="3"></textarea>
-      {:else if person.notes}
-        <p>{person.notes}</p>
-      {/if}
-    </section>
+    <PersonHeader
+      {person}
+      {isEditing}
+      {editGiven}
+      {editSurname}
+      {editSex}
+      {editNotes}
+      {lifespan}
+      {initials}
+      onStartEdit={startEdit}
+      onCancelEdit={cancelEdit}
+      onSaveEdit={saveEdit}
+      onGivenChange={(v) => (editGiven = v)}
+      onSurnameChange={(v) => (editSurname = v)}
+      onSexChange={(v) => (editSex = v)}
+      onNotesChange={(v) => (editNotes = v)}
+    />
 
     <div class="person-body">
       <div class="person-main">
@@ -331,167 +280,6 @@
     margin: 0 auto;
   }
 
-  .person-header {
-    display: flex;
-    gap: var(--space-6);
-    align-items: flex-start;
-    padding-bottom: var(--space-6);
-    border-bottom: 1px solid var(--color-border);
-    margin-bottom: var(--space-6);
-  }
-
-  .person-avatar {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-    border-radius: var(--radius-full);
-  }
-
-  .avatar-initials {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-    color: white;
-  }
-
-  .avatar-photo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: var(--radius-full);
-  }
-
-  .person-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .person-name {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .person-lifespan {
-    font-size: var(--font-size-lg);
-    color: var(--color-text-secondary);
-  }
-
-  .person-place {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-  }
-
-  .person-names-alt {
-    display: flex;
-    gap: var(--space-2);
-    flex-wrap: wrap;
-    margin-top: var(--space-2);
-  }
-
-  .name-badge {
-    font-size: var(--font-size-xs);
-    padding: var(--space-1) var(--space-2);
-    background: var(--color-bg-secondary);
-    border-radius: var(--radius-full);
-    color: var(--color-text-secondary);
-  }
-
-  .name-badge small {
-    color: var(--color-text-muted);
-  }
-
-  /* ── Edit mode ── */
-  .header-actions {
-    display: flex;
-    gap: var(--space-2);
-    flex-shrink: 0;
-  }
-
-  .btn-edit {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-  }
-
-  .btn-edit:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    padding: var(--space-2) var(--space-3);
-  }
-
-  .edit-name-row {
-    display: flex;
-    gap: var(--space-2);
-  }
-
-  .edit-input,
-  .edit-select,
-  .edit-textarea {
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    transition: border-color var(--transition-fast);
-  }
-
-  .edit-input:focus,
-  .edit-select:focus,
-  .edit-textarea:focus {
-    border-color: var(--color-primary);
-    outline: none;
-  }
-
-  .edit-field {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-top: var(--space-2);
-  }
-
-  .edit-field label {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-  }
-
-  .edit-textarea {
-    width: 100%;
-    resize: vertical;
-  }
-
-  /* ── Notes ── */
-  .person-notes {
-    margin-bottom: var(--space-6);
-  }
-
-  .person-notes p {
-    padding: var(--space-4);
-    background: var(--color-bg-secondary);
-    border-radius: var(--radius-md);
-    color: var(--color-text-secondary);
-    font-style: italic;
-  }
-
-  .notes-label {
-    display: block;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-1);
-  }
-
   /* ── Body ── */
   .person-body {
     display: grid;
@@ -556,20 +344,6 @@
   }
 
   @media (max-width: 768px) {
-    .person-header {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-
-    .header-actions {
-      justify-content: center;
-    }
-
-    .edit-name-row {
-      flex-direction: column;
-    }
-
     .person-body {
       grid-template-columns: 1fr;
     }

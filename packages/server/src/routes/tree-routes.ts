@@ -8,7 +8,7 @@
 
 import { Hono } from 'hono';
 import { apiSuccess, apiError } from '../utils/api-response';
-import * as personService from '../services/person-service';
+import * as treeService from '../services/tree-service';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 /**
@@ -20,7 +20,7 @@ export function createTreeRoutes(db: BetterSQLite3Database): Hono {
 
   // GET /api/tree/full — full family graph for the global overview
   router.get('/full', (c) => {
-    const result = personService.getFullFamilyTree(db);
+    const result = treeService.getFullFamilyTree(db);
     if (!result.ok) return apiError(c, result.error);
     return apiSuccess(c, result.data);
   });
@@ -29,7 +29,7 @@ export function createTreeRoutes(db: BetterSQLite3Database): Hono {
   router.get('/:id', (c) => {
     const id = c.req.param('id');
     const generations = Number(c.req.query('generations')) || 4;
-    const result = personService.buildAncestorTree(db, id, generations);
+    const result = treeService.buildAncestorTree(db, id, generations);
     if (!result.ok) return apiError(c, result.error);
     return apiSuccess(c, result.data);
   });
