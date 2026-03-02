@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { API_BASE } from '$lib/api';
 
   let {
     media,
@@ -16,8 +17,6 @@
     onClick?: () => void;
     onSetPrimary?: () => void;
   } = $props();
-
-  const API_BASE = '/api';
 
   const typeIcons: Record<string, string> = {
     image: '🖼️',

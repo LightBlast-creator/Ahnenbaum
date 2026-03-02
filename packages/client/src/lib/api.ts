@@ -85,7 +85,7 @@ function sleep(ms: number): Promise<void> {
 
 // ── Core fetch helper ───────────────────────────────────────────────
 
-const API_BASE = '/api';
+export const API_BASE = '/api';
 
 async function request<T>(
   method: string,

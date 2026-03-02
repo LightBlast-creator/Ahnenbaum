@@ -22,6 +22,7 @@
 
   const CARD_WIDTH = 160;
   const CARD_HEIGHT = 80;
+  const MAX_DISPLAY_NAME_LENGTH = 16;
 </script>
 
 <g
@@ -62,7 +63,9 @@
 
   <!-- Name and dates -->
   <text x="56" y={CARD_HEIGHT / 2 - 6} class="card-name">
-    {displayName.length > 16 ? displayName.slice(0, 15) + '…' : displayName}
+    {displayName.length > MAX_DISPLAY_NAME_LENGTH
+      ? displayName.slice(0, MAX_DISPLAY_NAME_LENGTH - 1) + '…'
+      : displayName}
   </text>
   {#if lifespan}
     <text x="56" y={CARD_HEIGHT / 2 + 12} class="card-dates">

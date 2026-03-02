@@ -159,6 +159,40 @@ describe('personService', () => {
     expect(list.data.total).toBe(0);
   });
 
+  it('returns NOT_FOUND when updating a soft-deleted person', () => {
+    const created = personService.createPerson(db, {
+      names: [{ given: 'Ghost', surname: 'Update' }],
+    });
+    if (!created.ok) throw new Error('setup failed');
+
+    personService.deletePerson(db, created.data.id);
+
+    const result = personService.updatePerson(db, created.data.id, { notes: 'should fail' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('NOT_FOUND');
+  });
+
+  it('returns empty page when pagination exceeds total', () => {
+    personService.createPerson(db, {
+      names: [{ given: 'Only', surname: 'One' }],
+    });
+
+    const result = personService.listPersons(db, { page: 100, limit: 10 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.persons).toHaveLength(0);
+    expect(result.data.total).toBe(1);
+  });
+
+  it('listPersonsWithDetails returns enriched data for empty DB', () => {
+    const result = personService.listPersonsWithDetails(db);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.persons).toHaveLength(0);
+    expect(result.data.total).toBe(0);
+  });
+
   // ── Person Events ────────────────────────────────────────────────
 
   it('adds an event to a person', () => {

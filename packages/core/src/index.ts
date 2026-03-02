@@ -12,6 +12,24 @@ export type { HealthStatus } from './types.ts';
 export type { Result, AppError, ErrorCode } from './result.ts';
 export { ok, err } from './result.ts';
 
+// ── Validation ───────────────────────────────────────────────────────
+export type { ValidationError } from './validation.ts';
+export {
+  MAX_NAME_LENGTH,
+  MAX_NOTES_LENGTH,
+  MAX_PLACE_NAME_LENGTH,
+  MAX_SOURCE_TITLE_LENGTH,
+  ALLOWED_SEX_VALUES,
+  ALLOWED_PRIVACY_VALUES,
+  ALLOWED_NAME_TYPES,
+  validateSex,
+  validatePrivacy,
+  validateNameType,
+  validateMaxLength,
+  validateRequired,
+  validateNotSelfReferencing,
+} from './validation.ts';
+
 // ── Domain models ────────────────────────────────────────────────────
 export type {
   // Date
