@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { EventBus } from './event-bus';
+import { EventBus } from './event-bus.ts';
 
 describe('EventBus', () => {
   it('delivers event to subscriber', () => {

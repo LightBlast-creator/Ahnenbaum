@@ -4,11 +4,11 @@
  * This is the public contract that all plugins implement.
  */
 
-import type { PluginContext } from './plugin-context';
-import type { RouteDefinition } from './routes';
-import type { PanelDefinition } from './panels';
-import type { HookRegistration } from './hooks';
-import type { SchemaExtension } from './schemas';
+import type { PluginContext } from './plugin-context.ts';
+import type { RouteDefinition } from './routes.ts';
+import type { PanelDefinition } from './panels.ts';
+import type { HookRegistration } from './hooks.ts';
+import type { SchemaExtension } from './schemas.ts';
 
 /**
  * The main plugin interface — every plugin must implement this.

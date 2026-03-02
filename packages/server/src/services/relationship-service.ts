@@ -7,10 +7,11 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate, RelationshipRow } from '@ahnenbaum/core';
 import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
-import { relationships } from '../db/schema/index';
-import { mustGet, countRows } from '../db/db-helpers';
-import { now, uuid } from '../db/helpers';
-import { persons } from '../db/schema/persons';
+import { relationships } from '../db/schema/index.ts';
+import { mustGet, countRows } from '../db/db-helpers.ts';
+import { now, uuid } from '../db/helpers.ts';
+import { normalizePagination } from '../utils/pagination.ts';
+import { persons } from '../db/schema/persons.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -141,9 +142,7 @@ export function listRelationships(
   db: BetterSQLite3Database,
   opts: { page?: number; limit?: number } = {},
 ): Result<{ relationships: RelationshipRow[]; total: number }> {
-  const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
-  const offset = (page - 1) * limit;
+  const { limit, offset } = normalizePagination(opts);
 
   const whereClause = isNull(relationships.deletedAt);
   const total = countRows(db, relationships, whereClause);

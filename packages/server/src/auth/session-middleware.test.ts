@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { sessionMiddleware } from './session-middleware';
+import { sessionMiddleware } from './session-middleware.ts';
 
 function createTestApp(): Hono {
   const app = new Hono();

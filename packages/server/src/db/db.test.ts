@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { createDb } from './connection';
+import { createDb } from './connection.ts';
 
 describe('Database connection', () => {
   let cleanup: (() => void) | undefined;

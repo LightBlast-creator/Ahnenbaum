@@ -11,9 +11,9 @@ import { eq } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
-import { persons, events } from '../db/schema/index';
-import { mustGet } from '../db/db-helpers';
-import { now, uuid } from '../db/helpers';
+import { persons, events } from '../db/schema/index.ts';
+import { mustGet } from '../db/db-helpers.ts';
+import { now, uuid } from '../db/helpers.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 

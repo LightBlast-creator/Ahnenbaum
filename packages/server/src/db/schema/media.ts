@@ -5,7 +5,7 @@
  */
 
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
-import { places } from './places';
+import { places } from './places.ts';
 
 export const media = sqliteTable('media', {
   id: text('id').primaryKey(),

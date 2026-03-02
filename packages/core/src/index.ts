@@ -5,12 +5,12 @@
  * (server, client, plugins) are allowed to import.
  */
 
-export { APP_NAME, APP_VERSION } from './constants';
-export type { HealthStatus } from './types';
+export { APP_NAME, APP_VERSION } from './constants.ts';
+export type { HealthStatus } from './types.ts';
 
 // ── Result types ─────────────────────────────────────────────────────
-export type { Result, AppError, ErrorCode } from './result';
-export { ok, err } from './result';
+export type { Result, AppError, ErrorCode } from './result.ts';
+export { ok, err } from './result.ts';
 
 // ── Domain models ────────────────────────────────────────────────────
 export type {
@@ -48,11 +48,13 @@ export type {
   MediaType,
   MediaLink,
   MediaLinkEntityType,
-} from './models/index';
-export { PARENT_CHILD_TYPES } from './models/index';
+  // Search
+  SearchEntityType,
+} from './models/index.ts';
+export { PARENT_CHILD_TYPES } from './models/index.ts';
 
 // ── Auth types ───────────────────────────────────────────────────────
-export type { AuthMode, UserRole, Session } from './models/auth';
+export type { AuthMode, UserRole, Session } from './models/auth.ts';
 
 // ── Plugin API ───────────────────────────────────────────────────────
 export type {
@@ -70,4 +72,4 @@ export type {
   PanelSlot,
   PanelDefinition,
   SchemaExtension,
-} from './plugin-api/index';
+} from './plugin-api/index.ts';

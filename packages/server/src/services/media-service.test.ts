@@ -9,8 +9,8 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import * as mediaService from './media-service';
-import type { StorageAdapter } from '../storage/local-storage';
+import * as mediaService from './media-service.ts';
+import type { StorageAdapter } from '../storage/local-storage.ts';
 
 function createTestDb(): BetterSQLite3Database {
   const sqlite = new Database(':memory:');

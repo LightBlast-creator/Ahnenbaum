@@ -9,7 +9,7 @@ import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
-import { LocalStorageAdapter, createLocalStorage } from './local-storage';
+import { LocalStorageAdapter, createLocalStorage } from './local-storage.ts';
 
 function tempDir(): string {
   const dir = join(tmpdir(), `ahnenbaum-test-${randomBytes(4).toString('hex')}`);

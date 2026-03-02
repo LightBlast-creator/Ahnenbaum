@@ -6,8 +6,8 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import * as relService from './relationship-service';
-import * as personService from './person-service';
+import * as relService from './relationship-service.ts';
+import * as personService from './person-service.ts';
 
 function createTestDb(): BetterSQLite3Database {
   const sqlite = new Database(':memory:');

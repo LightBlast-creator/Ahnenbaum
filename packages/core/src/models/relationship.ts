@@ -7,7 +7,7 @@
  * No gendered assumptions — same-sex relationships are first-class.
  */
 
-import type { GenealogyDate } from './date';
+import type { GenealogyDate } from './date.ts';
 
 /** Parent-child relationship types. */
 export type ParentChildRelationshipType =

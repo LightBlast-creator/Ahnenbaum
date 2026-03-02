@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { app } from './app';
+import { app } from './app.ts';
 
 describe('GET /health', () => {
   it('returns 200 with correct shape', async () => {

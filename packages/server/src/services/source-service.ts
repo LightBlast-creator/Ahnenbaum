@@ -5,9 +5,10 @@
 import { eq, isNull, like, sql, type SQL } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
-import { sources, citations } from '../db/schema/index';
-import { mustGet, countRows } from '../db/db-helpers';
-import { now, uuid } from '../db/helpers';
+import { sources, citations } from '../db/schema/index.ts';
+import { mustGet, countRows } from '../db/db-helpers.ts';
+import { now, uuid } from '../db/helpers.ts';
+import { normalizePagination } from '../utils/pagination.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -122,9 +123,7 @@ export function listSources(
   db: BetterSQLite3Database,
   opts: { page?: number; limit?: number; search?: string } = {},
 ): Result<{ sources: SourceRow[]; total: number }> {
-  const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
-  const offset = (page - 1) * limit;
+  const { limit, offset } = normalizePagination(opts);
 
   let whereClause: SQL = isNull(sources.deletedAt);
   if (opts.search) {

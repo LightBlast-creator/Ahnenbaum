@@ -1,15 +1,15 @@
 import { serve } from '@hono/node-server';
 import { APP_NAME } from '@ahnenbaum/core';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { createApp } from './app';
-import { createDb } from './db/connection';
-import { PluginManager } from './plugin-runtime/plugin-manager';
-import { EventBus } from './plugin-runtime/event-bus';
-import { PluginRouteRegistry } from './plugin-runtime/plugin-route-mount';
+import { createApp } from './app.ts';
+import { createDb } from './db/connection.ts';
+import { PluginManager } from './plugin-runtime/plugin-manager.ts';
+import { EventBus } from './plugin-runtime/event-bus.ts';
+import { PluginRouteRegistry } from './plugin-runtime/plugin-route-mount.ts';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BackupScheduler } from './backup/backup-scheduler';
-import { ensureDataDirs, DATA_DIR } from './paths';
+import { BackupScheduler } from './backup/backup-scheduler.ts';
+import { ensureDataDirs, DATA_DIR } from './paths.ts';
 
 // ── Process safety net — log instead of crashing silently ────────────
 process.on('unhandledRejection', (reason) => {

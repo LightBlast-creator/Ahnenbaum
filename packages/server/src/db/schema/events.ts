@@ -6,10 +6,10 @@
  */
 
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
-import { persons } from './persons';
-import { relationships } from './relationships';
-import { places } from './places';
-import { citations } from './sources';
+import { persons } from './persons.ts';
+import { relationships } from './relationships.ts';
+import { places } from './places.ts';
+import { citations } from './sources.ts';
 
 export const events = sqliteTable(
   'events',

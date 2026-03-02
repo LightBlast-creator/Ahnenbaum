@@ -5,7 +5,7 @@
  */
 
 import { createMiddleware } from 'hono/factory';
-import { createLogger } from './logger';
+import { createLogger } from './logger.ts';
 
 const logger = createLogger('http');
 

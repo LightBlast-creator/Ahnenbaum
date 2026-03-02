@@ -10,10 +10,13 @@
 import { sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, type Result } from '@ahnenbaum/core';
+import type { SearchEntityType } from '@ahnenbaum/core';
+import { normalizePagination } from '../utils/pagination.ts';
+
+// Re-export for backward compatibility (search-routes imports from here)
+export type { SearchEntityType };
 
 // ── Types ────────────────────────────────────────────────────────────
-
-export type SearchEntityType = 'person' | 'place' | 'event' | 'source' | 'media';
 
 export interface SearchResult {
   type: SearchEntityType;
@@ -134,9 +137,7 @@ function escapeFts5Query(query: string): string {
  * Search across all indexed entities using FTS5.
  */
 export function search(db: BetterSQLite3Database, opts: SearchOptions): Result<SearchResponse> {
-  const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
-  const offset = (page - 1) * limit;
+  const { limit, offset } = normalizePagination(opts);
 
   // If query is empty, return empty results
   if (!opts.query.trim()) {

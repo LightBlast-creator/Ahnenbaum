@@ -8,8 +8,8 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie, setCookie } from 'hono/cookie';
 import type { Session } from '@ahnenbaum/core';
-import { getAuthMode } from './auth-mode';
-import { createSingleUserSession } from './single-user-provider';
+import { getAuthMode } from './auth-mode.ts';
+import { createSingleUserSession } from './single-user-provider.ts';
 
 const COOKIE_NAME = 'ahnenbaum_session';
 const MAX_AGE = Number(process.env.SESSION_MAX_AGE) || 2592000; // 30 days

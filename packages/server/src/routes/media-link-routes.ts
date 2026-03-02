@@ -10,8 +10,8 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as mediaLinkService from '../services/media-link-service';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as mediaLinkService from '../services/media-link-service.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { MediaLinkEntityType } from '@ahnenbaum/core';
 

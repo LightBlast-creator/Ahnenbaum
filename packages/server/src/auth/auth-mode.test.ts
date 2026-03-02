@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, afterEach, vi } from 'vitest';
-import { getAuthMode } from './auth-mode';
+import { getAuthMode } from './auth-mode.ts';
 
 describe('getAuthMode', () => {
   const originalAuthMode = process.env.AUTH_MODE;

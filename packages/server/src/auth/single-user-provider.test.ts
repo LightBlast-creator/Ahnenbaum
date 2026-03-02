@@ -7,7 +7,7 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { rmSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { createSingleUserSession, getSessionSecret } from './single-user-provider';
+import { createSingleUserSession, getSessionSecret } from './single-user-provider.ts';
 
 // ── createSingleUserSession ─────────────────────────────────────────
 

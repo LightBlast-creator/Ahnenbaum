@@ -4,7 +4,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
-import { requestLogger } from './request-logger';
+import { requestLogger } from './request-logger.ts';
 
 function createTestApp(): Hono {
   const app = new Hono();

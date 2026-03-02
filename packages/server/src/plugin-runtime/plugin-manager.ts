@@ -16,9 +16,9 @@ import type {
   PanelDefinition,
 } from '@ahnenbaum/core';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { EventBus } from './event-bus';
-import { discoverPlugins } from './plugin-loader';
-import { PluginRouteRegistry } from './plugin-route-mount';
+import { EventBus } from './event-bus.ts';
+import { discoverPlugins } from './plugin-loader.ts';
+import { PluginRouteRegistry } from './plugin-route-mount.ts';
 
 interface ManagedPlugin {
   plugin: AhnenbaumPlugin;

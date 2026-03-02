@@ -3,8 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as sourceService from '../services/source-service';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as sourceService from '../services/source-service.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 export function createCitationRoutes(db: BetterSQLite3Database): Hono {

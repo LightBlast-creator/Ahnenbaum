@@ -3,9 +3,9 @@
  */
 
 import { describe, expect, it, beforeEach } from 'vitest';
-import { createTestDb } from '../test-helpers';
-import { createSearchRoutes } from './search-routes';
-import { createPersonRoutes } from './persons';
+import { createTestDb } from '../test-helpers.ts';
+import { createSearchRoutes } from './search-routes.ts';
+import { createPersonRoutes } from './persons.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 describe('search routes', () => {

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { seed } from './seed';
+import { seed } from './seed.ts';
 
 function createTestDb() {
   const sqlite = new Database(':memory:');

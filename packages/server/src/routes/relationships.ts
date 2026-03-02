@@ -7,12 +7,12 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as relService from '../services/relationship-service';
-import * as extFamilyService from '../services/extended-family-service';
-import { maybeCreatePartnerRelationships } from '../services/auto-relationships';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as relService from '../services/relationship-service.ts';
+import * as extFamilyService from '../services/extended-family-service.ts';
+import { maybeCreatePartnerRelationships } from '../services/auto-relationships.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type { EventBus } from '../plugin-runtime/event-bus';
+import type { EventBus } from '../plugin-runtime/event-bus.ts';
 
 export function createRelationshipRoutes(db: BetterSQLite3Database, eventBus?: EventBus): Hono {
   const router = new Hono();

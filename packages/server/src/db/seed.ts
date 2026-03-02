@@ -35,8 +35,8 @@ import {
   citations,
   media,
   mediaLinks,
-} from './schema/index';
-import { countRows } from './db-helpers';
+} from './schema/index.ts';
+import { countRows } from './db-helpers.ts';
 
 export interface SeedResult {
   persons: number;
@@ -546,7 +546,7 @@ export async function seed(db: BetterSQLite3Database): Promise<SeedResult> {
 // ── Entry point ──────────────────────────────────────────────────────
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/^file:\/\//, ''))) {
-  const { createDb } = await import('./connection');
+  const { createDb } = await import('./connection.ts');
   const { migrate } = await import('drizzle-orm/better-sqlite3/migrator');
   const db = createDb();
   migrate(db.db, { migrationsFolder: './drizzle' });

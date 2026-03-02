@@ -12,12 +12,12 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as mediaService from '../services/media-service';
-import type { StorageAdapter } from '../storage/local-storage';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as mediaService from '../services/media-service.ts';
+import type { StorageAdapter } from '../storage/local-storage.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { MediaType } from '@ahnenbaum/core';
-import type { EventBus } from '../plugin-runtime/event-bus';
+import type { EventBus } from '../plugin-runtime/event-bus.ts';
 
 /**
  * Create media routes.

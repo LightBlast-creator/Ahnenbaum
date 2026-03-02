@@ -5,7 +5,7 @@
  * event subscription, configuration, logging, and database access.
  */
 
-import type { HookName, HookPayloads, Disposable } from './hooks';
+import type { HookName, HookPayloads, Disposable } from './hooks.ts';
 
 /**
  * Scoped logger for a plugin.

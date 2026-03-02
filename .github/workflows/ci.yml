@@ -11,10 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: Lint → Typecheck → Test → Build
+  install:
+    name: Install dependencies
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,10 +27,61 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: deps-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+
+  lint:
+    name: Lint & Format
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: deps-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+
       - name: Lint
-        run: |
-          npm run lint
-          npm run format:check
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+  check:
+    name: Build → Typecheck → Test
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: deps-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
 
       - name: Build core (types needed by server & client)
         run: npm run build --workspace=packages/core
@@ -42,5 +92,5 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build
+      - name: Build all
         run: npm run build

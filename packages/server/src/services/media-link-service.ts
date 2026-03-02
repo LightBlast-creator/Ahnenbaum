@@ -9,13 +9,9 @@ import { eq, and, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { MediaLinkEntityType } from '@ahnenbaum/core';
-import { media, mediaLinks } from '../db/schema/index';
-import { persons } from '../db/schema/index';
-import { events } from '../db/schema/index';
-import { relationships } from '../db/schema/index';
-import { sources } from '../db/schema/index';
-import { mustGet } from '../db/db-helpers';
-import { now, uuid } from '../db/helpers';
+import { media, mediaLinks, persons, events, relationships, sources } from '../db/schema/index.ts';
+import { mustGet } from '../db/db-helpers.ts';
+import { now, uuid } from '../db/helpers.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 

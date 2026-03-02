@@ -3,9 +3,9 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { PluginManager } from './plugin-manager';
-import { EventBus } from './event-bus';
-import { PluginRouteRegistry } from './plugin-route-mount';
+import { PluginManager } from './plugin-manager.ts';
+import { EventBus } from './event-bus.ts';
+import { PluginRouteRegistry } from './plugin-route-mount.ts';
 import type { AhnenbaumPlugin, PluginContext } from '@ahnenbaum/core';
 
 // Minimal stub raw db — plugin manager only passes it through

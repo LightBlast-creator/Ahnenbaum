@@ -16,10 +16,21 @@ import type {
   Sex,
   Relationship,
   RelationshipRow,
+  SearchEntityType,
 } from '@ahnenbaum/core';
 
 // ── Re-export core types for convenience ────────────────────────────
-export type { Person, PersonName, Event, Place, Relationship, RelationshipRow, GenealogyDate, Sex };
+export type {
+  Person,
+  PersonName,
+  Event,
+  Place,
+  Relationship,
+  RelationshipRow,
+  GenealogyDate,
+  Sex,
+  SearchEntityType,
+};
 
 // ── Frontend types ──────────────────────────────────────────────────
 
@@ -81,7 +92,7 @@ export interface CreateEventInput {
 /** Searchable item shape used by CommandPalette. */
 export interface SearchableItem {
   id: string;
-  type: 'person' | 'place' | 'event' | 'source' | 'media';
+  type: SearchEntityType;
   label: string;
   sublabel?: string;
   href: string;

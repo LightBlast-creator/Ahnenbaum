@@ -9,10 +9,11 @@ import { eq, isNull, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { MediaType } from '@ahnenbaum/core';
-import { media, mediaLinks } from '../db/schema/index';
-import { mustGet, countRows } from '../db/db-helpers';
-import { now, uuid } from '../db/helpers';
-import type { StorageAdapter } from '../storage/local-storage';
+import { media, mediaLinks } from '../db/schema/index.ts';
+import { mustGet, countRows } from '../db/db-helpers.ts';
+import { now, uuid } from '../db/helpers.ts';
+import { normalizePagination } from '../utils/pagination.ts';
+import type { StorageAdapter } from '../storage/local-storage.ts';
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -253,9 +254,7 @@ export function listMedia(
   db: BetterSQLite3Database,
   opts: ListMediaOptions = {},
 ): Result<{ media: (typeof media.$inferSelect)[]; total: number }> {
-  const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
-  const offset = (page - 1) * limit;
+  const { limit, offset } = normalizePagination(opts);
 
   let whereClause = isNull(media.deletedAt);
   if (opts.type) {

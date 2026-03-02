@@ -7,8 +7,8 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as treeService from '../services/tree-service';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as treeService from '../services/tree-service.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 /**

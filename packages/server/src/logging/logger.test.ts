@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { createLogger } from './logger';
+import { createLogger } from './logger.ts';
 
 describe('createLogger', () => {
   it('creates a logger with all four methods', () => {
@@ -96,7 +96,7 @@ describe('log level filtering', () => {
     delete process.env.LOG_LEVEL;
     // Need fresh module to pick up env change
     vi.resetModules();
-    const { createLogger: freshLogger } = await import('./logger');
+    const { createLogger: freshLogger } = await import('./logger.ts');
 
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     const logger = freshLogger('test');
@@ -108,7 +108,7 @@ describe('log level filtering', () => {
   it('shows debug when LOG_LEVEL=debug', async () => {
     process.env.LOG_LEVEL = 'debug';
     vi.resetModules();
-    const { createLogger: freshLogger } = await import('./logger');
+    const { createLogger: freshLogger } = await import('./logger.ts');
 
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     const logger = freshLogger('test');

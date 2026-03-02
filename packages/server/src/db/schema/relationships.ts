@@ -5,8 +5,8 @@
  */
 
 import { sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
-import { persons } from './persons';
-import { places } from './places';
+import { persons } from './persons.ts';
+import { places } from './places.ts';
 
 export const relationships = sqliteTable(
   'relationships',

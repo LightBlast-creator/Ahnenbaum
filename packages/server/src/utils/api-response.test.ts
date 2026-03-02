@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from './api-response';
+import { apiSuccess, apiError } from './api-response.ts';
 import type { AppError } from '@ahnenbaum/core';
 
 describe('apiSuccess', () => {

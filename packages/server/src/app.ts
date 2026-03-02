@@ -2,27 +2,27 @@ import { Hono } from 'hono';
 import type { Session } from '@ahnenbaum/core';
 import { APP_NAME, APP_VERSION } from '@ahnenbaum/core';
 import type { HealthStatus } from '@ahnenbaum/core';
-import { errorHandler } from './middleware/error-handler';
+import { errorHandler } from './middleware/error-handler.ts';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync } from 'node:fs';
-import { createPersonRoutes } from './routes/persons';
-import { createPlaceRoutes } from './routes/places';
-import { createSourceRoutes } from './routes/sources';
-import { createCitationRoutes } from './routes/citations';
-import { createRelationshipRoutes } from './routes/relationships';
-import { createMediaRoutes } from './routes/media-routes';
-import { createMediaLinkRoutes } from './routes/media-link-routes';
-import { createSearchRoutes } from './routes/search-routes';
-import { createTreeRoutes } from './routes/tree-routes';
-import { LocalStorageAdapter } from './storage/local-storage';
-import { MEDIA_DIR } from './paths';
-import type { StorageAdapter } from './storage/local-storage';
+import { createPersonRoutes } from './routes/persons.ts';
+import { createPlaceRoutes } from './routes/places.ts';
+import { createSourceRoutes } from './routes/sources.ts';
+import { createCitationRoutes } from './routes/citations.ts';
+import { createRelationshipRoutes } from './routes/relationships.ts';
+import { createMediaRoutes } from './routes/media-routes.ts';
+import { createMediaLinkRoutes } from './routes/media-link-routes.ts';
+import { createSearchRoutes } from './routes/search-routes.ts';
+import { createTreeRoutes } from './routes/tree-routes.ts';
+import { LocalStorageAdapter } from './storage/local-storage.ts';
+import { MEDIA_DIR } from './paths.ts';
+import type { StorageAdapter } from './storage/local-storage.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type { PluginManager } from './plugin-runtime/plugin-manager';
-import { sessionMiddleware } from './auth/session-middleware';
-import { requestLogger } from './logging/request-logger';
+import type { PluginManager } from './plugin-runtime/plugin-manager.ts';
+import { sessionMiddleware } from './auth/session-middleware.ts';
+import { requestLogger } from './logging/request-logger.ts';
 
 /**
  * Create the Hono application with all routes.
@@ -101,6 +101,9 @@ export function createApp(
   const hasFallback = existsSync(fallbackPath);
 
   if (hasFallback) {
+    // Read SPA fallback HTML once at startup (not per-request)
+    const fallbackHtml = readFileSync(fallbackPath, 'utf-8');
+
     // Serve static assets (JS, CSS, images)
     app.use(
       '*',
@@ -110,10 +113,9 @@ export function createApp(
       }),
     );
 
-    // SPA fallback — any unmatched route gets the shell HTML
+    // SPA fallback — any unmatched route gets the cached shell HTML
     app.get('*', (c) => {
-      const html = readFileSync(fallbackPath, 'utf-8');
-      return c.html(html);
+      return c.html(fallbackHtml);
     });
   } else {
     // No client build available — show API info

@@ -10,8 +10,9 @@
 
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { createRelationship } from './relationship-service';
-import { relationships } from '../db/schema/index';
+import { createRelationship } from './relationship-service.ts';
+import { relationships } from '../db/schema/index.ts';
+import type { RelationshipRow } from '@ahnenbaum/core';
 
 // ── Configuration ────────────────────────────────────────────────────
 
@@ -32,20 +33,6 @@ interface RelationshipLike {
   personAId: string;
   personBId: string;
   type: string;
-}
-
-interface RelationshipRow {
-  id: string;
-  personAId: string;
-  personBId: string;
-  type: string;
-  startDate: string | null;
-  endDate: string | null;
-  placeId: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
 }
 
 /**

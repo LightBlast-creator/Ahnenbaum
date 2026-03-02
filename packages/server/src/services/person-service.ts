@@ -12,13 +12,15 @@ import { eq, isNull, and } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
-import { persons, personNames, events, mediaLinks } from '../db/schema/index';
-import { mustGet, countRows } from '../db/db-helpers';
-import { now, uuid } from '../db/helpers';
+import { persons, personNames, events, mediaLinks } from '../db/schema/index.ts';
+import { enrichPersonRows } from './person-enrichment.ts';
+import { mustGet, countRows } from '../db/db-helpers.ts';
+import { now, uuid } from '../db/helpers.ts';
+import { normalizePagination } from '../utils/pagination.ts';
 
 // Re-export event service for backward compatibility
-export { addPersonEvent, updatePersonEvent, deletePersonEvent } from './event-service';
-export type { CreateEventInput, UpdateEventInput, EventRow } from './event-service';
+export { addPersonEvent, updatePersonEvent, deletePersonEvent } from './event-service.ts';
+export type { CreateEventInput, UpdateEventInput, EventRow } from './event-service.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ export interface UpdatePersonInput {
   privacy?: string;
 }
 
-import type { EventRow } from './event-service';
+import type { EventRow } from './event-service.ts';
 
 interface PersonRow {
   id: string;
@@ -186,9 +188,7 @@ export function listPersons(
   db: BetterSQLite3Database,
   opts: { page?: number; limit?: number } = {},
 ): Result<{ persons: PersonRow[]; total: number }> {
-  const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
-  const offset = (page - 1) * limit;
+  const { limit, offset } = normalizePagination(opts);
 
   const whereClause = isNull(persons.deletedAt);
 
@@ -261,55 +261,17 @@ export function listPersonsWithDetails(
   db: BetterSQLite3Database,
   opts: { page?: number; limit?: number } = {},
 ): Result<{ persons: PersonWithDetailsRow[]; total: number }> {
-  const page = Math.max(1, opts.page ?? 1);
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
-  const offset = (page - 1) * limit;
+  const { limit, offset } = normalizePagination(opts);
 
   const whereClause = isNull(persons.deletedAt);
   const total = countRows(db, persons, whereClause);
 
   const rows = db.select().from(persons).where(whereClause).limit(limit).offset(offset).all();
-
-  // Bulk-load names, events, and primary media for all persons on this page
   const personIds = rows.map((p) => p.id);
 
-  const allNames = db.select().from(personNames).all();
-  const namesByPerson = new Map<string, typeof allNames>();
-  for (const name of allNames) {
-    if (!personIds.includes(name.personId)) continue;
-    const list = namesByPerson.get(name.personId) ?? [];
-    list.push(name);
-    namesByPerson.set(name.personId, list);
-  }
+  if (personIds.length === 0) return ok({ persons: [], total });
 
-  const allEvents = db.select().from(events).where(isNull(events.deletedAt)).all();
-  const eventsByPerson = new Map<string, typeof allEvents>();
-  for (const event of allEvents) {
-    if (!event.personId || !personIds.includes(event.personId)) continue;
-    const list = eventsByPerson.get(event.personId) ?? [];
-    list.push(event);
-    eventsByPerson.set(event.personId, list);
-  }
-
-  const primaryLinks = db
-    .select({ entityId: mediaLinks.linkedEntityId, mediaId: mediaLinks.mediaId })
-    .from(mediaLinks)
-    .where(and(eq(mediaLinks.linkedEntityType, 'person'), eq(mediaLinks.isPrimary, true)))
-    .all()
-    .filter((l) => personIds.includes(l.entityId));
-  const primaryMap = new Map(primaryLinks.map((l) => [l.entityId, l.mediaId]));
-
-  const enriched: PersonWithDetailsRow[] = rows.map((person) => ({
-    id: person.id,
-    sex: person.sex,
-    notes: person.notes,
-    privacy: person.privacy,
-    createdAt: person.createdAt,
-    updatedAt: person.updatedAt,
-    names: namesByPerson.get(person.id) ?? [],
-    events: eventsByPerson.get(person.id) ?? [],
-    primaryMediaId: primaryMap.get(person.id),
-  }));
+  const enriched = enrichPersonRows(db, personIds);
 
   return ok({ persons: enriched, total });
 }

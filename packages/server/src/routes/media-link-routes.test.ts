@@ -3,8 +3,8 @@
  */
 
 import { describe, expect, it, beforeEach } from 'vitest';
-import { createTestDb } from '../test-helpers';
-import { createMediaLinkRoutes } from './media-link-routes';
+import { createTestDb } from '../test-helpers.ts';
+import { createMediaLinkRoutes } from './media-link-routes.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 describe('media-link routes', () => {

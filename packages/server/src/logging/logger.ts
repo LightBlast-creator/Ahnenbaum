@@ -8,7 +8,7 @@
 
 import { appendFileSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { LOG_DIR } from '../paths';
+import { LOG_DIR } from '../paths.ts';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

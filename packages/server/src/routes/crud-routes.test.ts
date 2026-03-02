@@ -3,10 +3,10 @@
  */
 
 import { describe, expect, it, beforeEach } from 'vitest';
-import { createTestDb } from '../test-helpers';
-import { createPlaceRoutes } from './places';
-import { createSourceRoutes } from './sources';
-import { createCitationRoutes } from './citations';
+import { createTestDb } from '../test-helpers.ts';
+import { createPlaceRoutes } from './places.ts';
+import { createSourceRoutes } from './sources.ts';
+import { createCitationRoutes } from './citations.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 // ── Place routes ────────────────────────────────────────────────────

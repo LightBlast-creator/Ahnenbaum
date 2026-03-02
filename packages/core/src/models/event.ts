@@ -6,7 +6,7 @@
  * or relationship, optionally with a place and citation.
  */
 
-import type { GenealogyDate } from './date';
+import type { GenealogyDate } from './date.ts';
 
 /** Built-in event types. "custom" allows user-defined events. */
 export type EventType =

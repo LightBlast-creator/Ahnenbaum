@@ -13,10 +13,10 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as personService from '../services/person-service';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as personService from '../services/person-service.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type { EventBus } from '../plugin-runtime/event-bus';
+import type { EventBus } from '../plugin-runtime/event-bus.ts';
 
 /**
  * Create person routes.

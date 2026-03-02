@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createPluginRouter, PluginRouteRegistry } from './plugin-route-mount';
+import { createPluginRouter, PluginRouteRegistry } from './plugin-route-mount.ts';
 import type { AhnenbaumPlugin, RouteDefinition } from '@ahnenbaum/core';
 
 function makePlugin(name: string, routes: RouteDefinition[] = []): AhnenbaumPlugin {

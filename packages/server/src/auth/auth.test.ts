@@ -3,8 +3,8 @@
  */
 
 import { describe, expect, it, afterEach } from 'vitest';
-import { getAuthMode } from './auth-mode';
-import { createSingleUserSession } from './single-user-provider';
+import { getAuthMode } from './auth-mode.ts';
+import { createSingleUserSession } from './single-user-provider.ts';
 
 describe('getAuthMode', () => {
   afterEach(() => {
@@ -57,7 +57,7 @@ describe('createSingleUserSession', () => {
 
 describe('sessionMiddleware', () => {
   it('is importable and is a function', async () => {
-    const { sessionMiddleware } = await import('./session-middleware');
+    const { sessionMiddleware } = await import('./session-middleware.ts');
     expect(typeof sessionMiddleware).toBe('function');
   });
 });

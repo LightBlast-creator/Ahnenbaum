@@ -8,8 +8,8 @@
 import { existsSync, readdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import type BetterSqlite3 from 'better-sqlite3';
-import { createLogger } from '../logging/logger';
-import { BACKUP_DIR } from '../paths';
+import { createLogger } from '../logging/logger.ts';
+import { BACKUP_DIR } from '../paths.ts';
 
 const logger = createLogger('backup');
 

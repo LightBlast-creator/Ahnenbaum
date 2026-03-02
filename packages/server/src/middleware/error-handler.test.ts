@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { errorHandler } from './error-handler';
+import { errorHandler } from './error-handler.ts';
 
 function createTestApp(): Hono {
   const app = new Hono();

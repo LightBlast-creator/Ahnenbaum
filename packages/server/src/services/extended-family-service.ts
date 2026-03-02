@@ -5,12 +5,13 @@
  * via graph traversal. None of these relationships are materialized in the DB.
  */
 
-import { inArray, isNull, and } from 'drizzle-orm';
+import { isNull } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { relationships, persons, personNames, events } from '../db/schema/index';
-import { AUTO_PARTNER_QUALIFYING_TYPES } from './auto-relationships';
+import { relationships } from '../db/schema/index.ts';
+import { AUTO_PARTNER_QUALIFYING_TYPES } from './auto-relationships.ts';
 import { PARENT_CHILD_TYPES, ok, type Result } from '@ahnenbaum/core';
-import type { PersonWithDetailsRow } from './person-service';
+import type { PersonWithDetailsRow } from './person-service.ts';
+import { enrichPersonRowsMap } from './person-enrichment.ts';
 
 // ── Interfaces ─────────────────────────────────────────────────────────
 
@@ -52,46 +53,53 @@ interface Edge {
   role: 'parent' | 'child' | 'partner';
 }
 
-// ── Core Traversal Engine ──────────────────────────────────────────────
+// ── Graph Building ────────────────────────────────────────────────────
 
-export function getExtendedFamily(
-  db: BetterSQLite3Database,
-  personId: string,
-): Result<ExtendedFamilyResult> {
-  // 1. Fetch the neighborhood (iterative BFS up to 4 layers)
+/**
+ * Build the local family graph around a person via BFS.
+ * Loads all non-deleted relationships once, then traverses in-memory.
+ */
+function buildFamilyGraph(db: BetterSQLite3Database, personId: string): Edge[] {
+  // Load ALL non-deleted relationships once (not per BFS layer)
+  const allRels = db
+    .select({
+      personAId: relationships.personAId,
+      personBId: relationships.personBId,
+      type: relationships.type,
+    })
+    .from(relationships)
+    .where(isNull(relationships.deletedAt))
+    .all();
+
+  // Build adjacency index for fast lookup
+  const byA = new Map<string, typeof allRels>();
+  const byB = new Map<string, typeof allRels>();
+  for (const rel of allRels) {
+    const listA = byA.get(rel.personAId) ?? [];
+    listA.push(rel);
+    byA.set(rel.personAId, listA);
+
+    const listB = byB.get(rel.personBId) ?? [];
+    listB.push(rel);
+    byB.set(rel.personBId, listB);
+  }
+
   const edges: Edge[] = [];
   const visitedNodes = new Set<string>();
   let currentLayer = new Set<string>([personId]);
-  let depth = 0;
-  const MAX_DEPTH = 5; // generous buffer for "great-grandparents -> siblings -> children"
+  const MAX_DEPTH = 5;
 
-  while (currentLayer.size > 0 && depth < MAX_DEPTH) {
+  for (let depth = 0; currentLayer.size > 0 && depth < MAX_DEPTH; depth++) {
     for (const node of currentLayer) {
       visitedNodes.add(node);
     }
 
     const nextLayer = new Set<string>();
-    const nodeIds = Array.from(currentLayer);
 
-    // Fetch all relationships involving current layer
-    const layerRels = db
-      .select({
-        personAId: relationships.personAId,
-        personBId: relationships.personBId,
-        type: relationships.type,
-      })
-      .from(relationships)
-      .where(isNull(relationships.deletedAt))
-      .all() // SQLite is fast enough for all non-deleted, but let's filter in memory if small DB
-      // Note: for production, a proper IN clause chunking is better, but typical Ahnenbaum DBs are < 10k rows
-      .filter((r) => nodeIds.includes(r.personAId) || nodeIds.includes(r.personBId));
-
-    for (const rel of layerRels) {
-      const isAPresent = currentLayer.has(rel.personAId);
-      const isBPresent = currentLayer.has(rel.personBId);
-
-      // Add symmetric edges
-      if (isAPresent) {
+    for (const nodeId of currentLayer) {
+      // Relationships where this node is personA
+      const asA = byA.get(nodeId) ?? [];
+      for (const rel of asA) {
         edges.push({
           source: rel.personAId,
           target: rel.personBId,
@@ -100,7 +108,10 @@ export function getExtendedFamily(
         });
         if (!visitedNodes.has(rel.personBId)) nextLayer.add(rel.personBId);
       }
-      if (isBPresent) {
+
+      // Relationships where this node is personB
+      const asB = byB.get(nodeId) ?? [];
+      for (const rel of asB) {
         edges.push({
           source: rel.personBId,
           target: rel.personAId,
@@ -112,18 +123,24 @@ export function getExtendedFamily(
     }
 
     currentLayer = nextLayer;
-    depth++;
   }
 
-  // Deduplicate edges just in case
+  // Deduplicate edges
   const edgeKey = (e: Edge) => `${e.source}-${e.target}-${e.type}-${e.role}`;
   const uniqueEdges = new Map<string, Edge>();
   for (const edge of edges) {
     uniqueEdges.set(edgeKey(edge), edge);
   }
-  const graph = Array.from(uniqueEdges.values());
+  return Array.from(uniqueEdges.values());
+}
 
-  // 2. Define traversal functions
+// ── Relationship Derivation ───────────────────────────────────────────
+
+/**
+ * Derive all extended family relationship ID sets from the edge graph.
+ * Pure function — no database access.
+ */
+function deriveRelationships(graph: Edge[], personId: string): Record<string, string[]> {
   const getParents = (id: string) =>
     graph
       .filter((e) => e.source === id && e.role === 'parent' && isBioOrLegalParent(e.type))
@@ -148,7 +165,7 @@ export function getExtendedFamily(
     return Array.from(siblings);
   };
 
-  // Helper macro for path chaining
+  // Helper for path chaining
   const walk = (startIds: string | string[], ...steps: ((id: string) => string[])[]) => {
     let current = Array.isArray(startIds) ? startIds : [startIds];
     for (const step of steps) {
@@ -160,11 +177,9 @@ export function getExtendedFamily(
       }
       current = Array.from(next);
     }
-    // Final dedupe and exclude origin person
     return Array.from(new Set(current)).filter((id) => id !== personId);
   };
 
-  // 3. Execute derivation rules
   const grandparents = walk(personId, getParents, getParents);
   const greatGrandparents = walk(grandparents, getParents);
   const unclesAunts = walk(personId, getParents, getSiblings);
@@ -181,21 +196,39 @@ export function getExtendedFamily(
   const childrenInLaw = walk(personId, getChildren, getPartners);
   const coParentsInLaw = walk(childrenInLaw, getParents).filter(
     (id) => id !== personId && !getPartners(personId).includes(id),
-  ); // Exclude self and own partners
+  );
 
-  // 4. Resolve full person details for the required IDs
-  const allNeededIds = new Set([
-    ...grandparents,
-    ...greatGrandparents,
-    ...unclesAunts,
-    ...greatUnclesAunts,
-    ...cousins,
-    ...nephewsNieces,
-    ...siblingsInLaw,
-    ...parentsInLaw,
-    ...childrenInLaw,
-    ...coParentsInLaw,
-  ]);
+  return {
+    grandparents,
+    greatGrandparents,
+    unclesAunts,
+    greatUnclesAunts,
+    cousins,
+    nephewsNieces,
+    siblingsInLaw,
+    parentsInLaw,
+    childrenInLaw,
+    coParentsInLaw,
+  };
+}
+
+// ── Core Traversal Engine ──────────────────────────────────────────────
+
+export function getExtendedFamily(
+  db: BetterSQLite3Database,
+  personId: string,
+): Result<ExtendedFamilyResult> {
+  // 1. Build the graph (one DB query for all relationships)
+  const graph = buildFamilyGraph(db, personId);
+
+  // 2. Derive all relationship categories (pure function)
+  const derived = deriveRelationships(graph, personId);
+
+  // 3. Collect all unique person IDs that need enrichment
+  const allNeededIds = new Set<string>();
+  for (const ids of Object.values(derived)) {
+    for (const id of ids) allNeededIds.add(id);
+  }
 
   if (allNeededIds.size === 0) {
     return ok({
@@ -212,58 +245,8 @@ export function getExtendedFamily(
     });
   }
 
-  const idsArray = Array.from(allNeededIds);
-
-  // Bulk fetch persons
-  const foundPersons = db
-    .select()
-    .from(persons)
-    .where(inArray(persons.id, idsArray as [string, ...string[]]))
-    .all();
-
-  // Bulk fetch names and events for those persons
-  const foundNames = db
-    .select()
-    .from(personNames)
-    .where(inArray(personNames.personId, idsArray as [string, ...string[]]))
-    .all();
-
-  const foundEvents = db
-    .select()
-    .from(events)
-    .where(
-      and(isNull(events.deletedAt), inArray(events.personId, idsArray as [string, ...string[]])),
-    )
-    .all();
-
-  const namesByPerson = new Map<string, typeof foundNames>();
-  for (const name of foundNames) {
-    const list = namesByPerson.get(name.personId) ?? [];
-    list.push(name);
-    namesByPerson.set(name.personId, list);
-  }
-
-  const eventsByPerson = new Map<string, typeof foundEvents>();
-  for (const event of foundEvents) {
-    if (!event.personId) continue;
-    const list = eventsByPerson.get(event.personId) ?? [];
-    list.push(event);
-    eventsByPerson.set(event.personId, list);
-  }
-
-  const enrichedMap = new Map<string, PersonWithDetailsRow>();
-  for (const p of foundPersons) {
-    enrichedMap.set(p.id, {
-      id: p.id,
-      sex: p.sex,
-      notes: p.notes,
-      privacy: p.privacy,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-      names: namesByPerson.get(p.id) ?? [],
-      events: eventsByPerson.get(p.id) ?? [],
-    });
-  }
+  // 4. Bulk-enrich persons (shared helper — one query each for persons, names, events, media)
+  const enrichedMap = enrichPersonRowsMap(db, Array.from(allNeededIds));
 
   // 5. Build final result payload
   const mapList = (ids: string[], relType: string): ExtendedFamilyMember[] =>
@@ -273,15 +256,15 @@ export function getExtendedFamily(
       .map((person) => ({ person, derivedRelationship: relType }));
 
   return ok({
-    grandparents: mapList(grandparents, 'grandparent'),
-    greatGrandparents: mapList(greatGrandparents, 'great_grandparent'),
-    unclesAunts: mapList(unclesAunts, 'uncle_aunt'),
-    greatUnclesAunts: mapList(greatUnclesAunts, 'great_uncle_aunt'),
-    cousins: mapList(cousins, 'cousin'),
-    nephewsNieces: mapList(nephewsNieces, 'nephew_niece'),
-    siblingsInLaw: mapList(siblingsInLaw, 'sibling_in_law'),
-    parentsInLaw: mapList(parentsInLaw, 'parent_in_law'),
-    childrenInLaw: mapList(childrenInLaw, 'child_in_law'),
-    coParentsInLaw: mapList(coParentsInLaw, 'co_parent_in_law'),
+    grandparents: mapList(derived.grandparents, 'grandparent'),
+    greatGrandparents: mapList(derived.greatGrandparents, 'great_grandparent'),
+    unclesAunts: mapList(derived.unclesAunts, 'uncle_aunt'),
+    greatUnclesAunts: mapList(derived.greatUnclesAunts, 'great_uncle_aunt'),
+    cousins: mapList(derived.cousins, 'cousin'),
+    nephewsNieces: mapList(derived.nephewsNieces, 'nephew_niece'),
+    siblingsInLaw: mapList(derived.siblingsInLaw, 'sibling_in_law'),
+    parentsInLaw: mapList(derived.parentsInLaw, 'parent_in_law'),
+    childrenInLaw: mapList(derived.childrenInLaw, 'child_in_law'),
+    coParentsInLaw: mapList(derived.coParentsInLaw, 'co_parent_in_law'),
   });
 }

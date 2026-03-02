@@ -3,7 +3,7 @@ import type BetterSqlite3 from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { DATA_DIR } from '../paths';
+import { DATA_DIR } from '../paths.ts';
 
 export interface DbConnection {
   db: BetterSQLite3Database;

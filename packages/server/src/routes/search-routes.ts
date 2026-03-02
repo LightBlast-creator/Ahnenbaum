@@ -6,10 +6,10 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as searchService from '../services/search-service';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as searchService from '../services/search-service.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type { SearchEntityType } from '../services/search-service';
+import type { SearchEntityType } from '../services/search-service.ts';
 
 /**
  * Create search routes.

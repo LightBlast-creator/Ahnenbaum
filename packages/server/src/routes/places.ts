@@ -3,8 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { apiSuccess, apiError } from '../utils/api-response';
-import * as placeService from '../services/place-service';
+import { apiSuccess, apiError } from '../utils/api-response.ts';
+import * as placeService from '../services/place-service.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 export function createPlaceRoutes(db: BetterSQLite3Database): Hono {
