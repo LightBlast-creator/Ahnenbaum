@@ -44,7 +44,7 @@
   }: Props = $props();
 </script>
 
-<header class="person-header">
+<header class="person-header animate-in">
   <div class="person-avatar" data-sex={person.sex}>
     {#if person.primaryPhotoUrl}
       <img src={person.primaryPhotoUrl} alt="" class="avatar-photo" />

@@ -17,6 +17,31 @@
   let recentPersons = $state<PersonWithDetails[]>([]);
   let loading = $state(true);
 
+  // Animated display values for count-up effect
+  let displayPersonCount = $state(0);
+  let displayMediaCount = $state(0);
+
+  function animateCountUp(target: number, onUpdate: (v: number) => void, duration = 600) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onUpdate(target);
+      return;
+    }
+    if (target === 0) {
+      onUpdate(0);
+      return;
+    }
+    const start = performance.now();
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      onUpdate(Math.round(eased * target));
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
   async function loadDashboardData() {
     loading = true;
     try {
@@ -40,6 +65,14 @@
 
   $effect(() => {
     loadDashboardData();
+  });
+
+  // Trigger count-up animation when data loads
+  $effect(() => {
+    if (!loading && personCount > 0) {
+      animateCountUp(personCount, (v) => (displayPersonCount = v));
+      animateCountUp(mediaCount, (v) => (displayMediaCount = v));
+    }
   });
 
   const hasData = $derived(personCount > 0);
@@ -71,17 +104,17 @@
   {:else}
     <!-- Stats cards -->
     <section class="dashboard-stats">
-      <a href="{base}/persons" class="stat-card">
+      <a href="{base}/persons" class="stat-card animate-in" style="--stagger-index: 0">
         <span class="stat-icon">👤</span>
-        <span class="stat-value">{personCount}</span>
+        <span class="stat-value">{displayPersonCount}</span>
         <span class="stat-label">{m.nav_people()}</span>
       </a>
-      <a href="{base}/media" class="stat-card">
+      <a href="{base}/media" class="stat-card animate-in" style="--stagger-index: 1">
         <span class="stat-icon">🖼️</span>
-        <span class="stat-value">{mediaCount}</span>
+        <span class="stat-value">{displayMediaCount}</span>
         <span class="stat-label">{m.nav_media()}</span>
       </a>
-      <a href="{base}/tree" class="stat-card">
+      <a href="{base}/tree" class="stat-card animate-in" style="--stagger-index: 2">
         <span class="stat-icon">🌳</span>
         <span class="stat-value">&rarr;</span>
         <span class="stat-label">{m.dashboard_view_tree()}</span>
@@ -99,8 +132,12 @@
               <a href="{base}/persons" class="view-all">{m.dashboard_browse()} →</a>
             </div>
             <div class="recent-list">
-              {#each recentPersons as person (person.id)}
-                <a href="{base}/persons/{person.id}" class="recent-card">
+              {#each recentPersons as person, i (person.id)}
+                <a
+                  href="{base}/persons/{person.id}"
+                  class="recent-card animate-in"
+                  style="--stagger-index: {i + 3}"
+                >
                   <div class="recent-avatar">
                     {#if person.primaryPhotoUrl}
                       <img src={person.primaryPhotoUrl} alt="" class="recent-avatar-photo" />
