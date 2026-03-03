@@ -88,7 +88,8 @@
 
   // ── Toast ──
   let toastMessage = $state('');
-  let toastType: 'success' | 'error' = $state('success');
+  let toastType: 'success' | 'error' | 'warning' | 'info' = $state('success');
+  let toastOnUndo: (() => void) | undefined = $state(undefined);
 
   // ── Event delete confirm ──
   let eventDeleteConfirmOpen = $state(false);
@@ -105,6 +106,7 @@
   function handleMediaToast(message: string, type: 'success' | 'error') {
     toastMessage = message;
     toastType = type;
+    toastOnUndo = undefined;
   }
 
   function startEdit() {
@@ -175,15 +177,43 @@
 
   async function executeDeleteEvent() {
     if (!person || !pendingDeleteEventId) return;
+
+    // Snapshot event data for undo
+    const eventToDelete = personEvents.find((e) => e.id === pendingDeleteEventId);
+    const snapshot = eventToDelete
+      ? {
+          type: eventToDelete.type,
+          date: eventToDelete.date,
+          description: eventToDelete.description,
+        }
+      : null;
+    const pid = person.id;
+
     try {
-      await api.del(`persons/${person.id}/events/${pendingDeleteEventId}`);
+      await api.del(`persons/${pid}/events/${pendingDeleteEventId}`);
       pendingDeleteEventId = null;
       refreshKey++;
       toastMessage = m.toast_event_deleted();
       toastType = 'success';
+      toastOnUndo = snapshot
+        ? async () => {
+            try {
+              await api.post(`persons/${pid}/events`, snapshot);
+              refreshKey++;
+              toastMessage = m.toast_event_added();
+              toastType = 'success';
+              toastOnUndo = undefined;
+            } catch {
+              toastMessage = m.toast_undo_failed();
+              toastType = 'error';
+              toastOnUndo = undefined;
+            }
+          }
+        : undefined;
     } catch {
       toastMessage = m.toast_error();
       toastType = 'error';
+      toastOnUndo = undefined;
     }
   }
 
@@ -213,15 +243,42 @@
 
   async function executeDeleteRelationship() {
     if (!pendingDeleteRelId) return;
+
+    // Snapshot relationship data for undo
+    const relToDelete = relationships.find((r) => r.relationship.id === pendingDeleteRelId);
+    const snapshot = relToDelete
+      ? {
+          person1Id: relToDelete.relationship.personAId,
+          person2Id: relToDelete.relationship.personBId,
+          type: relToDelete.relationship.type,
+        }
+      : null;
+
     try {
       await api.del(`relationships/${pendingDeleteRelId}`);
       pendingDeleteRelId = null;
       refreshKey++;
       toastMessage = m.toast_relationship_deleted();
       toastType = 'success';
+      toastOnUndo = snapshot
+        ? async () => {
+            try {
+              await api.post('relationships', snapshot);
+              refreshKey++;
+              toastMessage = m.toast_relationship_created();
+              toastType = 'success';
+              toastOnUndo = undefined;
+            } catch {
+              toastMessage = m.toast_undo_failed();
+              toastType = 'error';
+              toastOnUndo = undefined;
+            }
+          }
+        : undefined;
     } catch {
       toastMessage = m.toast_error();
       toastType = 'error';
+      toastOnUndo = undefined;
     }
   }
 </script>
@@ -342,7 +399,15 @@
   onConfirm={executeDeleteRelationship}
 />
 
-<Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
+<Toast
+  message={toastMessage}
+  type={toastType}
+  onUndo={toastOnUndo}
+  onDismiss={() => {
+    toastMessage = '';
+    toastOnUndo = undefined;
+  }}
+/>
 
 <style>
   .person-detail {

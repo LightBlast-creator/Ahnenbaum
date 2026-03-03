@@ -230,5 +230,6 @@
   "place_no_results": "No places found",
   "toast_place_created": "Place created",
   "toast_place_updated": "Place updated",
-  "toast_place_deleted": "Place deleted"
+  "toast_place_deleted": "Place deleted",
+  "toast_undo_failed": "Undo failed"
 }
