@@ -110,3 +110,9 @@
 - Affected: media uploads, backups, logs, session secrets — anything writing to `data/` relative to CWD.
 - **Fix**: Centralize all data paths in a single `paths.ts` module using `DATA_DIR` env var. Docker sets `DATA_DIR=/app/packages/server/data` to match volume mounts. Default `data/` works for local dev. Never use `resolve('data/...')` directly in modules — import from `paths.ts`.
 
+## Paraglide: localStorage strategy must come before preferredLanguage
+- In Paraglide v2, strategies are resolved in order. The first one that returns a locale wins.
+- `preferredLanguage` reads `navigator.languages` (browser setting) — always returns a value if the user's OS language matches a configured locale.
+- `localStorage` stores the user's explicit choice via `setLocale()`.
+- **Bug**: If `preferredLanguage` comes first, the user's explicit choice in localStorage is never checked after page reload — browser language always wins.
+- **Fix**: Order strategies as `['localStorage', 'preferredLanguage', 'baseLocale']`. User's explicit choice wins, browser language is fallback for first-time visitors, `baseLocale` is last resort.
