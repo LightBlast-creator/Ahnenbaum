@@ -31,6 +31,7 @@ function getPersonsAndRelationships() {
 const plugin: AhnenbaumPlugin = {
   name: 'plugin-charts',
   version: '1.0.0',
+  coreVersion: '1.0.0',
   description: 'Genealogy chart visualizations (ancestor tree, descendant tree)',
   author: 'Ahnenbaum',
 
@@ -84,6 +85,7 @@ const plugin: AhnenbaumPlugin = {
     {
       slot: 'tree.overlay',
       label: 'Chart Controls',
+      labels: { de: 'Diagramm-Steuerung' },
       icon: '📊',
       component: 'ChartOverlay',
       order: 1,
@@ -91,6 +93,7 @@ const plugin: AhnenbaumPlugin = {
     {
       slot: 'dashboard.widget',
       label: 'Family Statistics',
+      labels: { de: 'Familienstatistik' },
       icon: '📈',
       component: 'FamilyStats',
       order: 5,

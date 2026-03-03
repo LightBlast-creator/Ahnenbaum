@@ -22,8 +22,10 @@ export type PanelSlot =
 export interface PanelDefinition {
   /** Which slot to render in */
   slot: PanelSlot;
-  /** Display label (tab title, panel header) */
+  /** Display label (tab title, panel header) — used as fallback when no translation matches */
   label: string;
+  /** Plugin-owned translations: locale code → translated label. e.g. { de: 'Familienstatistik' } */
+  labels?: Record<string, string>;
   /** Icon emoji or identifier */
   icon?: string;
   /** Component name — resolved by the client-side plugin loader */

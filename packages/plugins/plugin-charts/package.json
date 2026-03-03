@@ -5,7 +5,13 @@
   "description": "Genealogy chart visualizations for Ahnenbaum",
   "type": "module",
   "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@ahnenbaum/core": "*"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

@@ -7,6 +7,7 @@
    */
   import type { PanelDefinition } from '@ahnenbaum/core';
   import type { Snippet } from 'svelte';
+  import { getLocale } from '$lib/paraglide/runtime';
 
   interface Props {
     panel: PanelDefinition;
@@ -17,6 +18,9 @@
   let { panel, context: _context = {}, children }: Props = $props();
   let collapsed = $state(false);
   let hasError = $state(false);
+
+  // Resolve label from plugin's own translations, fall back to raw label
+  const resolvedLabel = $derived(panel.labels?.[getLocale()] ?? panel.label);
 </script>
 
 <div class="plugin-panel" class:collapsed>
@@ -24,7 +28,7 @@
     {#if panel.icon}
       <span class="panel-icon">{panel.icon}</span>
     {/if}
-    <span class="panel-label">{panel.label}</span>
+    <span class="panel-label">{resolvedLabel}</span>
     <span class="panel-toggle">{collapsed ? '▸' : '▾'}</span>
   </button>
 

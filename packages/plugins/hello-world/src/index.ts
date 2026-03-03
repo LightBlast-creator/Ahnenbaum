@@ -44,6 +44,7 @@ const plugin: AhnenbaumPlugin = {
     {
       slot: 'dashboard.widget',
       label: 'Hello Widget',
+      labels: { de: 'Begrüßungs-Widget' },
       icon: '👋',
       component: 'HelloWidget',
       order: 999,
