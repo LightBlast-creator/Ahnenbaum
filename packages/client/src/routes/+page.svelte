@@ -88,96 +88,114 @@
       </a>
     </section>
 
-    <!-- Recent persons -->
-    {#if recentPersons.length > 0}
-      <section class="dashboard-recent">
-        <div class="recent-header">
-          <h2>{m.nav_people()}</h2>
-          <a href="{base}/persons" class="view-all">{m.dashboard_browse()} →</a>
-        </div>
-        <div class="recent-list">
-          {#each recentPersons as person (person.id)}
-            <a href="{base}/persons/{person.id}" class="recent-card">
-              <div class="recent-avatar">
-                {#if person.primaryPhotoUrl}
-                  <img src={person.primaryPhotoUrl} alt="" class="recent-avatar-photo" />
-                {:else}
-                  <span class="recent-avatar-initials">
-                    {person.preferredName.given.charAt(0)}{person.preferredName.surname.charAt(0)}
-                  </span>
-                {/if}
-              </div>
-              <div class="recent-info">
-                <span class="recent-name">
-                  {person.preferredName.given}
-                  {person.preferredName.surname}
-                </span>
-                <span class="recent-dates">
-                  {formatLifespan(person.birthEvent?.date, person.deathEvent?.date)}
-                </span>
-              </div>
+    <!-- Two-column body -->
+    <div class="dashboard-body">
+      <!-- Left column: Recent persons -->
+      <div class="dashboard-main">
+        {#if recentPersons.length > 0}
+          <section class="dashboard-recent">
+            <div class="recent-header">
+              <h2>{m.nav_people()}</h2>
+              <a href="{base}/persons" class="view-all">{m.dashboard_browse()} →</a>
+            </div>
+            <div class="recent-list">
+              {#each recentPersons as person (person.id)}
+                <a href="{base}/persons/{person.id}" class="recent-card">
+                  <div class="recent-avatar">
+                    {#if person.primaryPhotoUrl}
+                      <img src={person.primaryPhotoUrl} alt="" class="recent-avatar-photo" />
+                    {:else}
+                      <span class="recent-avatar-initials">
+                        {person.preferredName.given.charAt(0)}{person.preferredName.surname.charAt(
+                          0,
+                        )}
+                      </span>
+                    {/if}
+                  </div>
+                  <div class="recent-info">
+                    <span class="recent-name">
+                      {person.preferredName.given}
+                      {person.preferredName.surname}
+                    </span>
+                    <span class="recent-dates">
+                      {formatLifespan(person.birthEvent?.date, person.deathEvent?.date)}
+                    </span>
+                  </div>
+                </a>
+              {/each}
+            </div>
+          </section>
+        {/if}
+      </div>
+
+      <!-- Right column: Quick actions + plugins -->
+      <div class="dashboard-sidebar">
+        <section class="dashboard-actions">
+          <h2>{m.dashboard_quick_actions()}</h2>
+          <div class="action-cards">
+            <a href="{base}/persons" class="action-card">
+              <span class="action-icon" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </span>
+              <span class="action-label">{m.dashboard_browse()}</span>
             </a>
-          {/each}
-        </div>
-      </section>
-    {/if}
-  {/if}
 
-  <!-- Quick actions -->
-  <section class="dashboard-actions">
-    <h2>{m.dashboard_quick_actions()}</h2>
-    <div class="action-cards">
-      <a href="{base}/persons" class="action-card">
-        <span class="action-icon" aria-hidden="true">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
-              cx="9"
-              cy="7"
-              r="4"
-            /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg
-          >
-        </span>
-        <span class="action-label">{m.dashboard_browse()}</span>
-      </a>
+            <a href="{base}/tree" class="action-card">
+              <span class="action-icon" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 22V8" />
+                  <path d="M5 12H2a10 10 0 0 0 20 0h-3" />
+                  <path d="M8 8a4 4 0 1 1 8 0" />
+                </svg>
+              </span>
+              <span class="action-label">{m.dashboard_view_tree()}</span>
+            </a>
+          </div>
+        </section>
 
-      <a href="{base}/tree" class="action-card">
-        <span class="action-icon" aria-hidden="true">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><path d="M12 22V8" /><path d="M5 12H2a10 10 0 0 0 20 0h-3" /><path
-              d="M8 8a4 4 0 1 1 8 0"
-            /></svg
-          >
-        </span>
-        <span class="action-label">{m.dashboard_view_tree()}</span>
-      </a>
+        <section class="dashboard-plugins">
+          <PluginSlot slot="dashboard.widget" />
+        </section>
+      </div>
     </div>
-  </section>
-
-  <section class="dashboard-plugins">
-    <PluginSlot slot="dashboard.widget" />
-  </section>
+  {/if}
 </div>
 
 <style>
   .dashboard {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
+    padding: 0 var(--space-6, 24px);
+  }
+
+  .dashboard-body {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: var(--space-6);
+    align-items: start;
   }
 
   .dashboard-hero {
@@ -246,7 +264,7 @@
 
   /* ── Recent ── */
   .dashboard-recent {
-    margin-bottom: var(--space-6);
+    margin-bottom: 0;
   }
 
   .recent-header {
@@ -339,7 +357,7 @@
 
   /* ── Quick Actions ── */
   .dashboard-actions {
-    padding: var(--space-6) 0;
+    padding: 0 0 var(--space-4);
   }
 
   .dashboard-actions h2 {
@@ -387,6 +405,12 @@
   .action-label {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
+  }
+
+  @media (max-width: 900px) {
+    .dashboard-body {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 768px) {

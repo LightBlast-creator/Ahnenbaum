@@ -17,8 +17,10 @@
 
   let personMediaItems = $state<{ link: PersonMediaLink; media: PersonMediaItem }[]>([]);
   let selectedMedia = $state<PersonMediaItem | null>(null);
+  let selectedLinkId = $state<string | null>(null);
   let viewerOpen = $state(false);
   let confirmOpen = $state(false);
+  let unlinkConfirmOpen = $state(false);
   let pendingDeleteId = $state<string | null>(null);
 
   async function loadMedia() {
@@ -95,7 +97,31 @@
     const item = personMediaItems.find((it) => it.media.id === mediaId);
     if (item) {
       selectedMedia = item.media;
+      selectedLinkId = item.link.id;
       viewerOpen = true;
+    }
+  }
+
+  function handleUnlinkClick(mediaId: string) {
+    const item = personMediaItems.find((it) => it.media.id === mediaId);
+    if (item) {
+      selectedLinkId = item.link.id;
+      unlinkConfirmOpen = true;
+    }
+  }
+
+  async function executeUnlink() {
+    if (!selectedLinkId) return;
+    try {
+      await api.del(`media-links/${selectedLinkId}`);
+      onToast(m.toast_media_unlinked(), 'success');
+      viewerOpen = false;
+      selectedMedia = null;
+      selectedLinkId = null;
+      await loadMedia();
+      onPrimaryChanged?.();
+    } catch {
+      onToast(m.toast_error(), 'error');
     }
   }
 
@@ -118,6 +144,7 @@
   bind:open={viewerOpen}
   media={selectedMedia}
   onDelete={handleDeleteClick}
+  onUnlink={handleUnlinkClick}
   onSetPrimary={handleSetPrimaryFromViewer}
   {onToast}
 />
@@ -126,7 +153,18 @@
   bind:open={confirmOpen}
   title={m.media_delete()}
   message={m.media_delete_confirm()}
+  confirmLabel={m.media_delete()}
+  variant="danger"
   onConfirm={executeDelete}
+/>
+
+<ConfirmDialog
+  bind:open={unlinkConfirmOpen}
+  title={m.media_unlink()}
+  message={m.media_delete_confirm()}
+  confirmLabel={m.media_unlink()}
+  variant="danger"
+  onConfirm={executeUnlink}
 />
 
 <style>

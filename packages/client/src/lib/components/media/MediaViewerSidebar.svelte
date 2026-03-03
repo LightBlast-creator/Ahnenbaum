@@ -8,6 +8,7 @@
     onSaveMetadata,
     onClose,
     onDelete,
+    onUnlink,
     onSetPrimary,
   }: {
     media: {
@@ -26,6 +27,7 @@
     onSaveMetadata: () => void;
     onClose: () => void;
     onDelete?: (id: string) => void;
+    onUnlink?: (id: string) => void;
     onSetPrimary?: (id: string) => void;
   } = $props();
 
@@ -88,6 +90,11 @@
     {#if onDelete}
       <button class="btn-danger" onclick={() => onDelete?.(media.id)}>
         🗑️ {m.media_delete()}
+      </button>
+    {/if}
+    {#if onUnlink}
+      <button class="btn-action" onclick={() => onUnlink?.(media.id)}>
+        🔗 {m.media_unlink()}
       </button>
     {/if}
   </div>

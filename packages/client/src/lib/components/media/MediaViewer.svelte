@@ -7,6 +7,7 @@
     open = $bindable(false),
     media,
     onDelete,
+    onUnlink,
     onSetPrimary,
     onUpdated,
     onToast,
@@ -24,6 +25,7 @@
       size: number;
     } | null;
     onDelete?: (id: string) => void;
+    onUnlink?: (id: string) => void;
     onSetPrimary?: (id: string) => void;
     onUpdated?: (updatedMedia: Record<string, unknown>) => void;
     onToast?: (message: string, type: 'success' | 'error') => void;
@@ -121,6 +123,7 @@
         onSaveMetadata={saveMetadata}
         onClose={close}
         {onDelete}
+        {onUnlink}
         {onSetPrimary}
       />
     </div>
