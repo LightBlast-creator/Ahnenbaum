@@ -9,12 +9,18 @@
   import CommandPalette from '$lib/components/CommandPalette.svelte';
   import ShortcutOverlay from '$lib/components/ShortcutOverlay.svelte';
   import ConnectionBanner from '$lib/components/ConnectionBanner.svelte';
+  import { initPluginRegistry } from '$lib/plugin-slots/plugin-registry';
 
   let { children } = $props();
   let sidebarCollapsed = $state(false);
   let showAddPerson = $state(false);
   let showSearch = $state(false);
   let showShortcuts = $state(false);
+
+  // Load plugin panels from server on app boot
+  $effect(() => {
+    initPluginRegistry();
+  });
 
   $effect(() => {
     const saved = localStorage.getItem('ahnenbaum-sidebar-collapsed');

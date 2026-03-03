@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { base } from '$app/paths';
   import PluginNav from '$lib/components/PluginNav.svelte';
+  import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 
   let { collapsed = false, onToggle }: { collapsed: boolean; onToggle: () => void } = $props();
 
@@ -11,6 +12,8 @@
     { href: '/persons', label: m.nav_people(), icon: 'users', shortcut: '' },
     { href: '/tree', label: m.nav_tree(), icon: 'tree', shortcut: '' },
     { href: '/media', label: m.nav_media(), icon: 'media', shortcut: '' },
+    { href: '/sources', label: m.nav_sources(), icon: 'sources', shortcut: '' },
+    { href: '/places', label: m.nav_places(), icon: 'places', shortcut: '' },
   ]);
 
   function isActive(href: string): boolean {
@@ -110,6 +113,36 @@
               stroke-linejoin="round"
               ><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
             >
+          {:else if item.icon === 'sources'}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path
+                d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
+              /></svg
+            >
+          {:else if item.icon === 'places'}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle
+                cx="12"
+                cy="10"
+                r="3"
+              /></svg
+            >
           {/if}
         </span>
         {#if !collapsed}
@@ -125,6 +158,10 @@
       <PluginNav />
     {/if}
   </nav>
+
+  {#if !collapsed}
+    <LanguageSwitcher />
+  {/if}
 
   <button
     class="sidebar-toggle"

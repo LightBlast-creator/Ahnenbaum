@@ -53,6 +53,8 @@
       tree: () => m.nav_tree(),
       media: () => m.nav_media(),
       search: () => m.search_title(),
+      sources: () => m.nav_sources(),
+      places: () => m.nav_places(),
     };
 
     // First segment (section)
