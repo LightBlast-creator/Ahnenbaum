@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { base } from '$app/paths';
+  import { goto } from '$app/navigation';
   import * as m from '$lib/paraglide/messages';
   import { api, type PersonWithDetails, type RelationshipEntry } from '$lib/api';
   import type { Event } from '@ahnenbaum/core';
@@ -93,6 +94,13 @@
   let eventDeleteConfirmOpen = $state(false);
   let pendingDeleteEventId = $state<string | null>(null);
 
+  // ── Person delete confirm ──
+  let personDeleteConfirmOpen = $state(false);
+
+  // ── Relationship delete confirm ──
+  let relDeleteConfirmOpen = $state(false);
+  let pendingDeleteRelId = $state<string | null>(null);
+
   // ── Media toast bridge ──
   function handleMediaToast(message: string, type: 'success' | 'error') {
     toastMessage = message;
@@ -178,6 +186,44 @@
       toastType = 'error';
     }
   }
+
+  // ── Person delete ──
+  function handleDeletePerson() {
+    personDeleteConfirmOpen = true;
+  }
+
+  async function executeDeletePerson() {
+    if (!person) return;
+    try {
+      await api.del(`persons/${person.id}`);
+      toastMessage = m.toast_person_deleted();
+      toastType = 'success';
+      goto(`${base}/persons`);
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
+  }
+
+  // ── Relationship delete ──
+  function handleDeleteRelationship(relId: string) {
+    pendingDeleteRelId = relId;
+    relDeleteConfirmOpen = true;
+  }
+
+  async function executeDeleteRelationship() {
+    if (!pendingDeleteRelId) return;
+    try {
+      await api.del(`relationships/${pendingDeleteRelId}`);
+      pendingDeleteRelId = null;
+      refreshKey++;
+      toastMessage = m.toast_relationship_deleted();
+      toastType = 'success';
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
+  }
 </script>
 
 <svelte:head>
@@ -202,6 +248,7 @@
       onStartEdit={startEdit}
       onCancelEdit={cancelEdit}
       onSaveEdit={saveEdit}
+      onDelete={handleDeletePerson}
       onGivenChange={(v) => (editGiven = v)}
       onSurnameChange={(v) => (editSurname = v)}
       onSexChange={(v) => (editSex = v)}
@@ -231,7 +278,12 @@
         <PluginSlot slot="person.detail.tab" context={{ personId }} />
       </div>
       <aside class="person-sidebar">
-        <RelationshipList {relationships} {siblings} {extendedFamily} />
+        <RelationshipList
+          {relationships}
+          {siblings}
+          {extendedFamily}
+          onDeleteRelationship={handleDeleteRelationship}
+        />
         <button class="btn-add-outline" onclick={() => (showRelModal = true)}>
           + {m.relationship_add()}
         </button>
@@ -270,6 +322,24 @@
   confirmLabel={m.event_delete()}
   variant="danger"
   onConfirm={executeDeleteEvent}
+/>
+
+<ConfirmDialog
+  bind:open={personDeleteConfirmOpen}
+  title={m.person_delete()}
+  message={m.person_delete_confirm()}
+  confirmLabel={m.person_delete()}
+  variant="danger"
+  onConfirm={executeDeletePerson}
+/>
+
+<ConfirmDialog
+  bind:open={relDeleteConfirmOpen}
+  title={m.relationship_delete()}
+  message={m.relationship_delete_confirm()}
+  confirmLabel={m.relationship_delete()}
+  variant="danger"
+  onConfirm={executeDeleteRelationship}
 />
 
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />

@@ -8,6 +8,7 @@
     relationships,
     siblings = [],
     extendedFamily,
+    onDeleteRelationship,
   }: {
     relationships: RelationshipEntry[];
     siblings?: PersonWithDetails[];
@@ -15,6 +16,7 @@
       string,
       { person: PersonWithDetails; derivedRelationship: string }[]
     > | null;
+    onDeleteRelationship?: (relId: string) => void;
   } = $props();
 
   const parents = $derived(relationships.filter((r) => r.role === 'parent'));
@@ -22,18 +24,30 @@
   const children = $derived(relationships.filter((r) => r.role === 'child'));
 </script>
 
-{#snippet personCard(person: PersonWithDetails)}
-  <a href="{base}/persons/{person.id}" class="rel-person">
-    <span class="rel-avatar">
-      {person.preferredName.given.charAt(0)}{person.preferredName.surname.charAt(0)}
-    </span>
-    <div class="rel-info">
-      <span class="rel-name">{person.preferredName.given} {person.preferredName.surname}</span>
-      <span class="rel-dates">
-        {formatLifespan(person.birthEvent?.date, person.deathEvent?.date)}
+{#snippet personCard(person: PersonWithDetails, relId?: string)}
+  <div class="rel-person-row">
+    <a href="{base}/persons/{person.id}" class="rel-person">
+      <span class="rel-avatar">
+        {person.preferredName.given.charAt(0)}{person.preferredName.surname.charAt(0)}
       </span>
-    </div>
-  </a>
+      <div class="rel-info">
+        <span class="rel-name">{person.preferredName.given} {person.preferredName.surname}</span>
+        <span class="rel-dates">
+          {formatLifespan(person.birthEvent?.date, person.deathEvent?.date)}
+        </span>
+      </div>
+    </a>
+    {#if relId && onDeleteRelationship}
+      <button
+        class="rel-delete-btn"
+        onclick={() => onDeleteRelationship?.(relId)}
+        aria-label={m.relationship_delete()}
+        title={m.relationship_delete()}
+      >
+        ✕
+      </button>
+    {/if}
+  </div>
 {/snippet}
 
 <section class="relationship-list">
@@ -46,8 +60,8 @@
     {#if parents.length > 0}
       <div class="rel-group">
         <h4 class="rel-group-title">{m.relationships_parents()}</h4>
-        {#each parents as { relatedPerson } (relatedPerson.id)}
-          {@render personCard(relatedPerson)}
+        {#each parents as { relatedPerson, relationship } (relatedPerson.id)}
+          {@render personCard(relatedPerson, relationship.id)}
         {/each}
       </div>
     {/if}
@@ -55,8 +69,8 @@
     {#if partners.length > 0}
       <div class="rel-group">
         <h4 class="rel-group-title">{m.relationships_partners()}</h4>
-        {#each partners as { relatedPerson } (relatedPerson.id)}
-          {@render personCard(relatedPerson)}
+        {#each partners as { relatedPerson, relationship } (relatedPerson.id)}
+          {@render personCard(relatedPerson, relationship.id)}
         {/each}
       </div>
     {/if}
@@ -64,8 +78,8 @@
     {#if children.length > 0}
       <div class="rel-group">
         <h4 class="rel-group-title">{m.relationships_children()}</h4>
-        {#each children as { relatedPerson } (relatedPerson.id)}
-          {@render personCard(relatedPerson)}
+        {#each children as { relatedPerson, relationship } (relatedPerson.id)}
+          {@render personCard(relatedPerson, relationship.id)}
         {/each}
       </div>
     {/if}
@@ -250,5 +264,36 @@
   .rel-dates {
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
+  }
+
+  .rel-person-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .rel-person-row .rel-person {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rel-delete-btn {
+    flex-shrink: 0;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    border-radius: var(--radius-md);
+    opacity: 0;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+  }
+
+  .rel-person-row:hover .rel-delete-btn {
+    opacity: 0.5;
+  }
+
+  .rel-delete-btn:hover {
+    opacity: 1 !important;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
   }
 </style>

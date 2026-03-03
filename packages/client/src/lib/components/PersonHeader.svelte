@@ -17,6 +17,7 @@
     onStartEdit: () => void;
     onCancelEdit: () => void;
     onSaveEdit: () => void;
+    onDelete?: () => void;
     onGivenChange: (value: string) => void;
     onSurnameChange: (value: string) => void;
     onSexChange: (value: Sex) => void;
@@ -35,6 +36,7 @@
     onStartEdit,
     onCancelEdit,
     onSaveEdit,
+    onDelete,
     onGivenChange,
     onSurnameChange,
     onSexChange,
@@ -118,6 +120,16 @@
       <button class="btn-edit" onclick={onStartEdit} aria-label={m.person_edit()}>
         ✏️ {m.person_edit()}
       </button>
+      {#if onDelete}
+        <button
+          class="btn-delete"
+          onclick={onDelete}
+          aria-label={m.person_delete()}
+          title={m.person_delete()}
+        >
+          🗑️
+        </button>
+      {/if}
     {/if}
   </div>
 </header>
@@ -259,6 +271,23 @@
   .btn-edit:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
+  }
+
+  .btn-delete {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    opacity: 0.6;
+  }
+
+  .btn-delete:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    opacity: 1;
   }
 
   .btn-primary,
