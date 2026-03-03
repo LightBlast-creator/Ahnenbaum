@@ -3,6 +3,7 @@
   import type { Sex } from '@ahnenbaum/core';
   import { sexOptions } from '$lib/constants';
   import { calculateAge } from '$lib/utils/date-format';
+  import { avatarGradient } from '$lib/utils/avatar-color';
   import * as m from '$lib/paraglide/messages';
 
   interface Props {
@@ -42,10 +43,16 @@
     onSexChange,
     onNotesChange,
   }: Props = $props();
+
+  const avatarBg = $derived(
+    person.primaryPhotoUrl
+      ? undefined
+      : avatarGradient(`${person.preferredName.given} ${person.preferredName.surname}`),
+  );
 </script>
 
 <header class="person-header animate-in">
-  <div class="person-avatar" data-sex={person.sex}>
+  <div class="person-avatar" data-sex={person.sex} style:background={avatarBg}>
     {#if person.primaryPhotoUrl}
       <img src={person.primaryPhotoUrl} alt="" class="avatar-photo" />
     {:else}

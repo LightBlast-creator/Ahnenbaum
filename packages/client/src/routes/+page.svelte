@@ -11,6 +11,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
   import { formatLifespan } from '$lib/utils/date-format';
+  import { avatarGradient } from '$lib/utils/avatar-color';
 
   let personCount = $state(0);
   let mediaCount = $state(0);
@@ -138,7 +139,14 @@
                   class="recent-card animate-in"
                   style="--stagger-index: {i + 3}"
                 >
-                  <div class="recent-avatar">
+                  <div
+                    class="recent-avatar"
+                    style:background={person.primaryPhotoUrl
+                      ? undefined
+                      : avatarGradient(
+                          `${person.preferredName.given} ${person.preferredName.surname}`,
+                        )}
+                  >
                     {#if person.primaryPhotoUrl}
                       <img src={person.primaryPhotoUrl} alt="" class="recent-avatar-photo" />
                     {:else}
