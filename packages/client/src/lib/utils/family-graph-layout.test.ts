@@ -40,6 +40,7 @@ describe('layoutFamilyGraph', () => {
 
     expect(result.nodes).toHaveLength(1);
     expect(result.nodes[0].person.id).toBe('p1');
+    expect(result.nodes[0].generation).toBe(0);
   });
 
   it('positions parent-child with correct generation order', () => {
@@ -60,18 +61,21 @@ describe('layoutFamilyGraph', () => {
     // Parent at gen 0, child at gen 1 → parent y < child y
     if (!parentNode || !childNode) throw new Error('Expected nodes');
     expect(parentNode.y).toBeLessThan(childNode.y);
+    expect(parentNode.generation).toBe(0);
+    expect(childNode.generation).toBe(1);
   });
 
-  it('creates connections for parent-child edges', () => {
+  it('creates family groups for parent-child edges', () => {
     const persons = [makePerson('parent', 'Klaus', 'Müller'), makePerson('child', 'Max', 'Müller')];
     const edges: GraphEdge[] = [
       { id: 'r1', personAId: 'parent', personBId: 'child', type: 'biological_parent' },
     ];
 
     const result = layoutFamilyGraph(persons, edges);
-    expect(result.connections.length).toBeGreaterThanOrEqual(1);
-    // The output connection type is 'parent-child' (not the input edge type)
-    expect(result.connections.some((c) => c.type === 'parent-child')).toBe(true);
+    // Parent-child connections are now represented as family groups (T-connectors)
+    expect(result.familyGroups.length).toBeGreaterThanOrEqual(1);
+    expect(result.familyGroups[0].parentIds).toContain('parent');
+    expect(result.familyGroups[0].childIds).toContain('child');
   });
 
   it('handles partner edges', () => {
@@ -118,6 +122,9 @@ describe('layoutFamilyGraph', () => {
     if (!gp || !p || !c) throw new Error('Expected nodes');
     expect(gp.y).toBeLessThan(p.y);
     expect(p.y).toBeLessThan(c.y);
+    expect(gp.generation).toBe(0);
+    expect(p.generation).toBe(1);
+    expect(c.generation).toBe(2);
   });
 
   it('produces partner connection for marriage edge', () => {

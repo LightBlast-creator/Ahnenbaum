@@ -12,6 +12,7 @@
 import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 import type { PersonWithDetails } from '$lib/api';
 import type { PositionedNode } from '$lib/utils/tree-layout';
+import { CARD_HALF_HEIGHT } from '$lib/utils/tree-constants';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -22,6 +23,24 @@ export interface GraphConnection {
   x2: number;
   y2: number;
   type: 'parent-child' | 'partner';
+}
+
+/** A family unit: one or two parents with their shared children. */
+export interface FamilyGroup {
+  parentIds: string[];
+  childIds: string[];
+  /** X midpoint between parents (or single parent X). */
+  coupleX: number;
+  /** Y of the parent row (bottom of parent card). */
+  coupleY: number;
+  /** Y of the horizontal child rail (staggered if multiple groups overlap). */
+  railY: number;
+  /** Positions of each child (for branch rendering). */
+  childPositions: { id: string; x: number; y: number }[];
+  /** Positions of each parent. */
+  parentPositions: { id: string; x: number; y: number }[];
+  /** Color palette index for unique per-group coloring. */
+  colorIndex: number;
 }
 
 /** Input edge from the server — minimal fields needed for layout. */
@@ -36,13 +55,109 @@ export interface GraphEdge {
 export interface GraphLayout {
   nodes: PositionedNode[];
   connections: GraphConnection[];
+  familyGroups: FamilyGroup[];
 }
 
 // ── Constants ────────────────────────────────────────────────────────
 
 const PARENT_CHILD_SET = new Set<string>(PARENT_CHILD_TYPES);
-const HORIZONTAL_SPACING = 200; // px between nodes within a generation
+// (horizontal spacing is now variable — see PARTNER_GAP, SIBLING_GAP, FAMILY_GAP)
 const VERTICAL_SPACING = 160; // px between generations
+const RAIL_STAGGER = 12; // px offset between overlapping rails
+
+// ── Shared family group utilities ────────────────────────────────────
+
+/**
+ * Build FamilyGroup T-connector data from positioned nodes.
+ *
+ * Groups children by their shared parent set, computes couple/rail
+ * coordinates for each group. Reusable by both full-family and
+ * ancestor pedigree modes.
+ *
+ * @param nodes      - Positioned nodes with parentIds
+ * @param positionOf - Map of personId → { x, y }
+ * @param generation - Map of personId → generation number (for color coding)
+ */
+export function buildFamilyGroups(
+  nodes: PositionedNode[],
+  positionOf: Map<string, { x: number; y: number }>,
+  generation?: Map<string, number>,
+): FamilyGroup[] {
+  // Group children by shared parent set (key = sorted parent IDs)
+  const familyMap = new Map<string, { parentIds: string[]; childIds: string[] }>();
+
+  for (const node of nodes) {
+    if (node.parentIds.length === 0) continue;
+    const key = [...node.parentIds].sort().join('|');
+    const existing = familyMap.get(key);
+    if (existing) {
+      existing.childIds.push(node.person.id);
+    } else {
+      familyMap.set(key, {
+        parentIds: [...node.parentIds],
+        childIds: [node.person.id],
+      });
+    }
+  }
+
+  const groups: FamilyGroup[] = [];
+
+  for (const [, family] of familyMap.entries()) {
+    const parentPositions = family.parentIds
+      .map((id) => {
+        const pos = positionOf.get(id);
+        return pos ? { id, x: pos.x, y: pos.y } : null;
+      })
+      .filter((p): p is { id: string; x: number; y: number } => p !== null);
+
+    const childPositions = family.childIds
+      .map((id) => {
+        const pos = positionOf.get(id);
+        return pos ? { id, x: pos.x, y: pos.y } : null;
+      })
+      .filter((p): p is { id: string; x: number; y: number } => p !== null);
+
+    if (parentPositions.length === 0 || childPositions.length === 0) continue;
+
+    const coupleX = parentPositions.reduce((sum, p) => sum + p.x, 0) / parentPositions.length;
+    const coupleY = parentPositions[0].y + CARD_HALF_HEIGHT;
+    const childY = childPositions[0].y - CARD_HALF_HEIGHT;
+    const railY = (coupleY + childY) / 2;
+
+    groups.push({
+      parentIds: family.parentIds,
+      childIds: family.childIds,
+      coupleX,
+      coupleY,
+      railY,
+      childPositions,
+      parentPositions,
+      colorIndex: generation?.get(family.parentIds[0]) ?? 0,
+    });
+  }
+
+  return groups;
+}
+
+/**
+ * Stagger overlapping rails so parallel horizontal lines don't overlap.
+ * Mutates the railY of each group in place.
+ */
+export function staggerFamilyGroupRails(groups: FamilyGroup[]): void {
+  const railBuckets = new Map<number, FamilyGroup[]>();
+  for (const group of groups) {
+    const key = Math.round(group.railY);
+    const bucket = railBuckets.get(key) ?? [];
+    bucket.push(group);
+    railBuckets.set(key, bucket);
+  }
+  for (const [, bucket] of railBuckets.entries()) {
+    const count = bucket.length;
+    for (let i = 0; i < count; i++) {
+      bucket[i].railY += (i - (count - 1) / 2) * RAIL_STAGGER;
+    }
+  }
+}
 
 // ── Layout algorithm ─────────────────────────────────────────────────
 
@@ -53,7 +168,7 @@ const VERTICAL_SPACING = 160; // px between generations
  * @param edges   - All relationships (from getFullFamilyTree server response)
  */
 export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge[]): GraphLayout {
-  if (persons.length === 0) return { nodes: [], connections: [] };
+  if (persons.length === 0) return { nodes: [], connections: [], familyGroups: [] };
 
   // ── Step 1: Build adjacency maps ─────────────────────────────────
 
@@ -218,82 +333,202 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     byGen.set(gen, row);
   }
 
-  // ── Step 4: Order within each generation (partners adjacent) ─────
+  // ── Steps 4+5: Build placement groups & assign positions ──────────
+  //
+  // KISS: one pass per generation, top-to-bottom.
+  //
+  // A "placement group" = siblings (same parents) + their married-in partners.
+  //   Married-in = in-generation partner who has NO parents in this tree.
+  //
+  // Gen 0:  groups placed left→right, centered at X=0.
+  // Gen N>0: each group centered under the mean X of its parents,
+  //          overlaps resolved by pushing groups right.
 
-  for (const [gen, ids] of byGen.entries()) {
-    const ordered: string[] = [];
-    const placed = new Set<string>();
-    const idsInGen = new Set(ids); // O(1) lookup instead of O(n) includes()
-
-    for (const id of ids) {
-      if (placed.has(id)) continue;
-      ordered.push(id);
-      placed.add(id);
-      // Place partners immediately after this person (if they're in the same generation)
-      for (const partnerId of partnersOf.get(id) ?? []) {
-        if (!placed.has(partnerId) && idsInGen.has(partnerId)) {
-          ordered.push(partnerId);
-          placed.add(partnerId);
-        }
-      }
-    }
-
-    byGen.set(gen, ordered);
-  }
-
-  // ── Step 5: Assign coordinates ───────────────────────────────────
+  const PARTNER_GAP = 210;
+  const SIBLING_GAP = 240;
+  const FAMILY_GAP = 300;
 
   const personById = new Map(persons.map((p) => [p.id, p]));
   const positionOf = new Map<string, { x: number; y: number }>();
   const nodes: PositionedNode[] = [];
+  const sortedGens = [...byGen.keys()].sort((a, b) => a - b);
 
-  for (const [gen, ids] of byGen.entries()) {
+  for (const gen of sortedGens) {
+    const ids = byGen.get(gen) ?? [];
     const y = gen * VERTICAL_SPACING;
-    const totalWidth = (ids.length - 1) * HORIZONTAL_SPACING;
-    const startX = -totalWidth / 2; // center the row
+    const idsInGen = new Set(ids);
 
-    ids.forEach((id, idx) => {
-      const x = startX + idx * HORIZONTAL_SPACING;
-      positionOf.set(id, { x, y });
+    // ── Who has parents in the tree? ──
+    const hasParents = new Set<string>();
+    for (const id of ids) {
+      const p = parentsOf.get(id);
+      if (p && p.size > 0) hasParents.add(id);
+    }
 
-      const person = personById.get(id);
-      if (!person) return;
+    // ── Group siblings by parent key ──
+    const sibMap = new Map<string, string[]>();
+    for (const id of ids) {
+      if (!hasParents.has(id)) continue;
+      const key = [...(parentsOf.get(id) ?? [])].sort().join('|');
+      const arr = sibMap.get(key) ?? [];
+      arr.push(id);
+      sibMap.set(key, arr);
+    }
 
-      nodes.push({
-        person,
-        x,
-        y,
-        parentIds: [...(parentsOf.get(id) ?? [])],
-      });
-    });
+    // ── Build placement groups ──
+    const placed = new Set<string>();
+    const groups: { members: string[]; parentIds: string[] }[] = [];
+
+    // Sibling groups first (each pulls in married-in partners)
+    for (const [, siblings] of sibMap.entries()) {
+      const members: string[] = [];
+      const parentIds = [...(parentsOf.get(siblings[0]) ?? [])];
+      for (const sib of siblings) {
+        if (placed.has(sib)) continue;
+        members.push(sib);
+        placed.add(sib);
+        // Pull married-in partners (no parents in tree)
+        for (const pid of partnersOf.get(sib) ?? []) {
+          if (!placed.has(pid) && idsInGen.has(pid) && !hasParents.has(pid)) {
+            members.push(pid);
+            placed.add(pid);
+          }
+        }
+      }
+      if (members.length > 0) groups.push({ members, parentIds });
+    }
+
+    // Remaining people → own groups (couples/singles with no parents)
+    for (const id of ids) {
+      if (placed.has(id)) continue;
+      const members = [id];
+      placed.add(id);
+      for (const pid of partnersOf.get(id) ?? []) {
+        if (!placed.has(pid) && idsInGen.has(pid)) {
+          members.push(pid);
+          placed.add(pid);
+        }
+      }
+      groups.push({ members, parentIds: [] });
+    }
+
+    // ── Compute internal layout per group ──
+    interface LG {
+      members: string[];
+      offsets: number[]; // X offsets relative to group center
+      width: number;
+      targetX: number;
+    }
+
+    const lgs: LG[] = [];
+
+    for (const g of groups) {
+      const xs = [0];
+      let cursor = 0;
+      for (let i = 1; i < g.members.length; i++) {
+        const a = g.members[i - 1];
+        const b = g.members[i];
+        const partner =
+          (partnersOf.get(a) ?? new Set()).has(b) || (partnersOf.get(b) ?? new Set()).has(a);
+        cursor += partner ? PARTNER_GAP : SIBLING_GAP;
+        xs.push(cursor);
+      }
+      const width = cursor;
+      const mid = width / 2;
+      const offsets = xs.map((x) => x - mid);
+
+      // Target center = mean X of parents (or 0 for roots)
+      let targetX = 0;
+      let cnt = 0;
+      for (const pid of g.parentIds) {
+        const pos = positionOf.get(pid);
+        if (pos) {
+          targetX += pos.x;
+          cnt++;
+        }
+      }
+      if (cnt > 0) targetX /= cnt;
+
+      lgs.push({ members: g.members, offsets, width, targetX });
+    }
+
+    // ── Sort groups left→right by target X ──
+    lgs.sort((a, b) => a.targetX - b.targetX);
+
+    // ── Resolve overlaps (push right) ──
+    const centers: number[] = [];
+    for (let i = 0; i < lgs.length; i++) {
+      let cx = lgs[i].targetX;
+      if (i > 0) {
+        const prevRight = centers[i - 1] + lgs[i - 1].width / 2;
+        const myLeft = cx - lgs[i].width / 2;
+        if (myLeft < prevRight + FAMILY_GAP) {
+          cx = prevRight + FAMILY_GAP + lgs[i].width / 2;
+        }
+      }
+      centers.push(cx);
+    }
+
+    // For the first generation, center everything at X=0
+    if (gen === sortedGens[0] && centers.length > 0) {
+      const left = centers[0] - lgs[0].width / 2;
+      const right = centers[centers.length - 1] + lgs[lgs.length - 1].width / 2;
+      const shift = -(left + right) / 2;
+      for (let i = 0; i < centers.length; i++) centers[i] += shift;
+    }
+
+    // ── Emit positioned nodes ──
+    for (let i = 0; i < lgs.length; i++) {
+      const lg = lgs[i];
+      for (let j = 0; j < lg.members.length; j++) {
+        const id = lg.members[j];
+        const x = centers[i] + lg.offsets[j];
+        positionOf.set(id, { x, y });
+
+        const person = personById.get(id);
+        if (!person) continue;
+        nodes.push({
+          person,
+          x,
+          y,
+          parentIds: [...(parentsOf.get(id) ?? [])],
+          generation: generation.get(id) ?? 0,
+        });
+      }
+    }
   }
 
-  // ── Step 6: Generate typed connection lines ───────────────────────
+  const familyGroups = buildFamilyGroups(nodes, positionOf, generation);
+
+  // ── Step 6b: Stagger overlapping rails ─────────────────────────────
+  staggerFamilyGroupRails(familyGroups);
+
+  // ── Step 7: Generate partner connection lines ─────────────────────
+  // Only for childless couples — couples with children already get a
+  // colored ═ bond rendered via their familyGroup.
 
   const connections: GraphConnection[] = [];
   const processedPartnerPairs = new Set<string>();
 
+  // Build a set of parent-pair keys that already have a family group
+  const familyGroupPairKeys = new Set<string>();
+  for (const group of familyGroups) {
+    if (group.parentIds.length >= 2) {
+      familyGroupPairKeys.add([...group.parentIds].sort().join('|'));
+    }
+  }
+
   for (const node of nodes) {
     const { x, y } = positionOf.get(node.person.id) ?? { x: 0, y: 0 };
-
-    // Parent-child connections: from top-center of child to bottom-center of parent
-    for (const parentId of node.parentIds) {
-      const parentPos = positionOf.get(parentId);
-      if (!parentPos) continue;
-      connections.push({
-        x1: x,
-        y1: y - 40, // top of child card
-        x2: parentPos.x,
-        y2: parentPos.y + 40, // bottom of parent card
-        type: 'parent-child',
-      });
-    }
 
     // Partner connections: horizontal line between partners (deduplicated)
     for (const partnerId of partnersOf.get(node.person.id) ?? []) {
       const pairKey = [node.person.id, partnerId].sort().join('|');
       if (processedPartnerPairs.has(pairKey)) continue;
       processedPartnerPairs.add(pairKey);
+
+      // Skip if this couple already has a family group T-connector
+      if (familyGroupPairKeys.has(pairKey)) continue;
 
       const partnerPos = positionOf.get(partnerId);
       if (!partnerPos) continue;
@@ -308,5 +543,5 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     }
   }
 
-  return { nodes, connections };
+  return { nodes, connections, familyGroups };
 }
