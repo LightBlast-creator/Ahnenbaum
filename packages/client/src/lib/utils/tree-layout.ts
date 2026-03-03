@@ -15,6 +15,7 @@ export interface PositionedNode {
   x: number;
   y: number;
   parentIds: string[];
+  generation: number;
 }
 
 export interface TreeLayoutOptions {
@@ -27,7 +28,7 @@ export interface TreeLayoutOptions {
 }
 
 const DEFAULT_OPTIONS: TreeLayoutOptions = {
-  nodeWidth: 180,
+  nodeWidth: 220,
   nodeHeight: 120,
   horizontalSpacing: 200,
 };
@@ -74,6 +75,7 @@ export function layoutAncestorTree(
       x,
       y,
       parentIds: node.parents.map((p) => p.person.id),
+      generation: depth,
     });
 
     // Layout parents

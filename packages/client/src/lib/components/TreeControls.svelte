@@ -3,20 +3,35 @@
 
   let {
     scale,
+    connectionStyle = 'bezier',
+    minimapVisible = false,
     onZoomIn,
     onZoomOut,
     onFit,
     onFullscreen,
+    onCenterOnRoot,
+    onConnectionStyleChange,
+    onToggleMinimap,
   }: {
     scale: number;
+    connectionStyle?: 'bezier' | 'orthogonal';
+    minimapVisible?: boolean;
     onZoomIn: () => void;
     onZoomOut: () => void;
     onFit: () => void;
     onFullscreen: () => void;
+    onCenterOnRoot?: () => void;
+    onConnectionStyleChange?: (style: 'bezier' | 'orthogonal') => void;
+    onToggleMinimap?: () => void;
   } = $props();
+
+  function toggleConnectionStyle() {
+    onConnectionStyleChange?.(connectionStyle === 'bezier' ? 'orthogonal' : 'bezier');
+  }
 </script>
 
 <div class="tree-controls" role="toolbar" aria-label="Tree controls">
+  <!-- Zoom controls -->
   <button onclick={onZoomIn} aria-label={m.tree_zoom_in()} title={m.tree_zoom_in()}>
     <svg
       width="18"
@@ -44,6 +59,7 @@
 
   <div class="divider"></div>
 
+  <!-- Fit to screen -->
   <button onclick={onFit} aria-label={m.tree_fit()} title={m.tree_fit()}>
     <svg
       width="18"
@@ -58,6 +74,27 @@
     >
   </button>
 
+  <!-- Center on root -->
+  {#if onCenterOnRoot}
+    <button onclick={onCenterOnRoot} aria-label={m.tree_center_root()} title={m.tree_center_root()}>
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        ><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="6" /><line
+          x1="12"
+          y1="18"
+          x2="12"
+          y2="22"
+        /><line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /></svg
+      >
+    </button>
+  {/if}
+
+  <!-- Fullscreen -->
   <button onclick={onFullscreen} aria-label={m.tree_fullscreen()} title={m.tree_fullscreen()}>
     <svg
       width="18"
@@ -74,6 +111,69 @@
       /><line x1="3" y1="21" x2="10" y2="14" /></svg
     >
   </button>
+
+  {#if onConnectionStyleChange}
+    <div class="divider"></div>
+
+    <!-- Connection style toggle -->
+    <button
+      onclick={toggleConnectionStyle}
+      aria-label={m.tree_connection_style()}
+      title={connectionStyle === 'bezier'
+        ? m.tree_connection_orthogonal()
+        : m.tree_connection_bezier()}
+      class:active={connectionStyle === 'orthogonal'}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        {#if connectionStyle === 'bezier'}
+          <!-- Bezier icon: curved path -->
+          <path d="M4 20 C 4 10, 20 14, 20 4" />
+          <circle cx="4" cy="20" r="2" fill="currentColor" />
+          <circle cx="20" cy="4" r="2" fill="currentColor" />
+        {:else}
+          <!-- Orthogonal icon: right-angle path -->
+          <path d="M4 20 V 12 H 20 V 4" />
+          <circle cx="4" cy="20" r="2" fill="currentColor" />
+          <circle cx="20" cy="4" r="2" fill="currentColor" />
+        {/if}
+      </svg>
+    </button>
+  {/if}
+
+  {#if onToggleMinimap}
+    <!-- Minimap toggle -->
+    <button
+      onclick={onToggleMinimap}
+      aria-label={m.tree_minimap()}
+      title={m.tree_minimap()}
+      class:active={minimapVisible}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        ><rect x="3" y="3" width="18" height="18" rx="2" /><rect
+          x="7"
+          y="7"
+          width="6"
+          height="5"
+          rx="1"
+          fill="currentColor"
+          opacity="0.3"
+        /></svg
+      >
+    </button>
+  {/if}
 </div>
 
 <style>
@@ -106,6 +206,11 @@
   .tree-controls button:hover {
     background: var(--color-surface-hover);
     color: var(--color-text);
+  }
+
+  .tree-controls button.active {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
   }
 
   .zoom-level {

@@ -39,6 +39,7 @@ describe('layoutAncestorTree', () => {
     expect(nodes[0].x).toBe(0);
     expect(nodes[0].y).toBe(0);
     expect(nodes[0].person.id).toBe('root');
+    expect(nodes[0].generation).toBe(0);
   });
 
   it('positions 2-generation tree (root + 2 parents)', () => {
@@ -59,8 +60,11 @@ describe('layoutAncestorTree', () => {
 
     // Root at y=0, parents above (negative y)
     expect(root?.y).toBe(0);
+    expect(root?.generation).toBe(0);
     expect(father?.y).toBeLessThan(0);
+    expect(father?.generation).toBe(1);
     expect(mother?.y).toBeLessThan(0);
+    expect(mother?.generation).toBe(1);
 
     // Father and mother at same y level
     expect(father?.y).toBe(mother?.y);
@@ -110,6 +114,11 @@ describe('layoutAncestorTree', () => {
     expect(root).toBeDefined();
     expect(gp?.y).toBeLessThan(root?.y ?? 0);
     expect(gm?.y).toBeLessThan(root?.y ?? 0);
+
+    // Verify generation depths
+    expect(root?.generation).toBe(0);
+    expect(gp?.generation).toBe(2);
+    expect(gm?.generation).toBe(2);
   });
 });
 
@@ -122,8 +131,8 @@ describe('getTreeBounds', () => {
 
   it('computes correct bounds', () => {
     const nodes = [
-      { person: makePerson('a', 'A', 'B'), x: -100, y: -200, parentIds: [] },
-      { person: makePerson('b', 'C', 'D'), x: 100, y: 0, parentIds: [] },
+      { person: makePerson('a', 'A', 'B'), x: -100, y: -200, parentIds: [], generation: 0 },
+      { person: makePerson('b', 'C', 'D'), x: 100, y: 0, parentIds: [], generation: 0 },
     ];
 
     const bounds = getTreeBounds(nodes);
