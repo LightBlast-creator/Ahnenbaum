@@ -80,6 +80,9 @@
   let editSex: Sex = $state('unknown');
   let editNotes = $state('');
 
+  // ── Tabs ──
+  let activeTab: 'events' | 'relationships' | 'media' = $state('events');
+
   // ── Event form ──
   let showEventForm = $state(false);
 
@@ -302,6 +305,7 @@
       {editNotes}
       {lifespan}
       {initials}
+      treeUrl="{base}/tree?root={person.id}"
       onStartEdit={startEdit}
       onCancelEdit={cancelEdit}
       onSaveEdit={saveEdit}
@@ -312,8 +316,32 @@
       onNotesChange={(v) => (editNotes = v)}
     />
 
-    <div class="person-body">
-      <div class="person-main">
+    <div class="person-tabs">
+      <button
+        class="tab-btn"
+        class:active={activeTab === 'events'}
+        onclick={() => (activeTab = 'events')}
+      >
+        {m.events_title()}
+      </button>
+      <button
+        class="tab-btn"
+        class:active={activeTab === 'relationships'}
+        onclick={() => (activeTab = 'relationships')}
+      >
+        {m.relationships_title()}
+      </button>
+      <button
+        class="tab-btn"
+        class:active={activeTab === 'media'}
+        onclick={() => (activeTab = 'media')}
+      >
+        {m.media_title()}
+      </button>
+    </div>
+
+    <div class="person-tab-content">
+      {#if activeTab === 'events'}
         <EventList
           events={personEvents}
           onEdit={handleEditEvent}
@@ -326,15 +354,10 @@
             + {m.event_add()}
           </button>
         {/if}
-
-        <PersonMediaSection
-          {personId}
-          onToast={handleMediaToast}
-          onPrimaryChanged={() => refreshKey++}
-        />
         <PluginSlot slot="person.detail.tab" context={{ personId }} />
-      </div>
-      <aside class="person-sidebar">
+      {/if}
+
+      {#if activeTab === 'relationships'}
         <RelationshipList
           {relationships}
           {siblings}
@@ -344,15 +367,16 @@
         <button class="btn-add-outline" onclick={() => (showRelModal = true)}>
           + {m.relationship_add()}
         </button>
-
-        <div class="person-meta">
-          <a href="{base}/tree?root={person.id}" class="tree-link">
-            🌳 {m.nav_tree()}
-          </a>
-        </div>
-
         <PluginSlot slot="person.detail.sidebar" context={{ personId }} />
-      </aside>
+      {/if}
+
+      {#if activeTab === 'media'}
+        <PersonMediaSection
+          {personId}
+          onToast={handleMediaToast}
+          onPrimaryChanged={() => refreshKey++}
+        />
+      {/if}
     </div>
   </div>
 {:else}
@@ -415,39 +439,53 @@
     margin: 0 auto;
   }
 
-  /* ── Body ── */
-  .person-body {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: var(--space-8);
-  }
-
-  .person-sidebar {
+  /* ── Tabs ── */
+  .person-tabs {
     display: flex;
-    flex-direction: column;
     gap: var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-6);
+    overflow-x: auto;
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
   }
 
-  .person-meta {
-    margin-top: var(--space-4);
+  .person-tabs::-webkit-scrollbar {
+    display: none; /* Hide scrollbar in Chrome/Safari */
   }
 
-  .tree-link {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
-    background: var(--color-primary-light);
-    color: var(--color-primary);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
+  .tab-btn {
+    padding: var(--space-3) 0;
+    font-size: var(--font-size-base);
     font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    border-bottom: 2px solid transparent;
     transition: all var(--transition-fast);
+    background: transparent;
+    white-space: nowrap;
   }
 
-  .tree-link:hover {
-    background: var(--color-primary);
-    color: var(--color-text-inverse);
+  .tab-btn:hover {
+    color: var(--color-text);
+  }
+
+  .tab-btn.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .person-tab-content {
+    animation: fade-in 200ms ease-out;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .btn-add-outline {
@@ -476,11 +514,5 @@
   .not-found h1 {
     margin-bottom: var(--space-4);
     color: var(--color-text-muted);
-  }
-
-  @media (max-width: 768px) {
-    .person-body {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

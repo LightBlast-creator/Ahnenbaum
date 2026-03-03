@@ -23,6 +23,7 @@
     onSurnameChange: (value: string) => void;
     onSexChange: (value: Sex) => void;
     onNotesChange: (value: string) => void;
+    treeUrl?: string;
   }
 
   let {
@@ -42,6 +43,7 @@
     onSurnameChange,
     onSexChange,
     onNotesChange,
+    treeUrl,
   }: Props = $props();
 
   const avatarBg = $derived(
@@ -120,6 +122,9 @@
     {/if}
   </div>
   <div class="header-actions">
+    {#if treeUrl && !isEditing}
+      <a href={treeUrl} class="btn-secondary">🌳 {m.nav_tree()}</a>
+    {/if}
     {#if isEditing}
       <button class="btn-secondary" onclick={onCancelEdit}>{m.person_cancel()}</button>
       <button class="btn-primary" onclick={onSaveEdit}>{m.person_save()}</button>
