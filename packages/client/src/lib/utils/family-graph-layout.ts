@@ -412,6 +412,120 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
       groups.push({ members, parentIds: [] });
     }
 
+    // ── Step A: Sort groups so cross-coupled groups are adjacent ──
+    // Detect cross-group partner links and chain-sort groups.
+    const memberToGroup = new Map<string, number>();
+    for (let gi = 0; gi < groups.length; gi++) {
+      for (const m of groups[gi].members) memberToGroup.set(m, gi);
+    }
+
+    // Build adjacency: groupIdx → Set<groupIdx> via partner bonds
+    const groupAdj = new Map<number, Set<number>>();
+    for (let gi = 0; gi < groups.length; gi++) {
+      for (const m of groups[gi].members) {
+        for (const pid of partnersOf.get(m) ?? []) {
+          const pgi = memberToGroup.get(pid);
+          if (pgi !== undefined && pgi !== gi) {
+            const s = groupAdj.get(gi) ?? new Set<number>();
+            s.add(pgi);
+            groupAdj.set(gi, s);
+          }
+        }
+      }
+    }
+
+    // Greedy chain sort: start from group 0, follow partner links
+    if (groupAdj.size > 0) {
+      const visited = new Set<number>();
+      const ordered: typeof groups = [];
+      const queue = [0];
+      while (ordered.length < groups.length) {
+        const idx = queue.shift();
+        if (idx === undefined) {
+          // Pick first unvisited group
+          for (let i = 0; i < groups.length; i++) {
+            if (!visited.has(i)) {
+              queue.push(i);
+              break;
+            }
+          }
+          continue;
+        }
+        if (visited.has(idx)) continue;
+        visited.add(idx);
+        ordered.push(groups[idx]);
+        // Enqueue adjacent groups first (so they end up next in the chain)
+        for (const adj of groupAdj.get(idx) ?? []) {
+          if (!visited.has(adj)) queue.push(adj);
+        }
+      }
+      groups.length = 0;
+      groups.push(...ordered);
+    }
+
+    // ── Step B: Reorder members so cross-group partners are at boundaries ──
+    // Rebuild memberToGroup after reordering
+    memberToGroup.clear();
+    for (let gi = 0; gi < groups.length; gi++) {
+      for (const m of groups[gi].members) memberToGroup.set(m, gi);
+    }
+
+    for (let gi = 0; gi < groups.length; gi++) {
+      const g = groups[gi];
+      // Find members with partners in adjacent groups
+      const moveToRight: string[] = []; // partner in next group
+      const moveToLeft: string[] = []; // partner in prev group
+
+      for (const m of g.members) {
+        for (const pid of partnersOf.get(m) ?? []) {
+          const pgi = memberToGroup.get(pid);
+          if (pgi === gi + 1) moveToRight.push(m);
+          else if (pgi === gi - 1) moveToLeft.push(m);
+        }
+      }
+
+      if (moveToRight.length === 0 && moveToLeft.length === 0) continue;
+
+      // Rebuild members array: left-boundary members first, middle, right-boundary last
+      const leftSet = new Set(moveToLeft);
+      const rightSet = new Set(moveToRight);
+      const middle = g.members.filter((m) => !leftSet.has(m) && !rightSet.has(m));
+
+      // For each boundary member, also pull their in-group partner next to them
+      const reordered: string[] = [];
+
+      // Left boundary: member + their in-group partner (if any)
+      for (const m of moveToLeft) {
+        reordered.push(m);
+        for (const pid of partnersOf.get(m) ?? []) {
+          if (memberToGroup.get(pid) === gi && !leftSet.has(pid) && !rightSet.has(pid)) {
+            // Pull partner next to them and remove from middle
+            const idx = middle.indexOf(pid);
+            if (idx !== -1) {
+              middle.splice(idx, 1);
+              reordered.push(pid);
+            }
+          }
+        }
+      }
+
+      reordered.push(...middle);
+
+      // Right boundary: member + their in-group partner (if any)
+      for (const m of moveToRight) {
+        // Pull in-group partner before the boundary member
+        for (const pid of partnersOf.get(m) ?? []) {
+          if (memberToGroup.get(pid) === gi && !leftSet.has(pid) && !rightSet.has(pid)) {
+            const idx = reordered.indexOf(pid);
+            if (idx === -1) reordered.push(pid); // wasn't placed yet
+          }
+        }
+        reordered.push(m);
+      }
+
+      g.members = reordered;
+    }
+
     // ── Compute internal layout per group ──
     interface LG {
       members: string[];
@@ -460,10 +574,18 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     for (let i = 0; i < lgs.length; i++) {
       let cx = lgs[i].targetX;
       if (i > 0) {
+        // Use PARTNER_GAP if the boundary members are partners, FAMILY_GAP otherwise
+        const prevRightMember = lgs[i - 1].members[lgs[i - 1].members.length - 1];
+        const myLeftMember = lgs[i].members[0];
+        const areBoundaryPartners =
+          (partnersOf.get(prevRightMember) ?? new Set()).has(myLeftMember) ||
+          (partnersOf.get(myLeftMember) ?? new Set()).has(prevRightMember);
+        const gap = areBoundaryPartners ? PARTNER_GAP : FAMILY_GAP;
+
         const prevRight = centers[i - 1] + lgs[i - 1].width / 2;
         const myLeft = cx - lgs[i].width / 2;
-        if (myLeft < prevRight + FAMILY_GAP) {
-          cx = prevRight + FAMILY_GAP + lgs[i].width / 2;
+        if (myLeft < prevRight + gap) {
+          cx = prevRight + gap + lgs[i].width / 2;
         }
       }
       centers.push(cx);

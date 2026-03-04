@@ -211,4 +211,93 @@ describe('layoutFamilyGraph', () => {
     expect(gen('martin')).toBe(gen('barbara'));
     expect(gen('martin')).toBeGreaterThan(gen('ernst'));
   });
+
+  it('places cross-group couple children under their parents, not between groups', () => {
+    // Probst family scenario:
+    // Ernst & Helene → parents of Martin and Thomas
+    // Helmut & Lieselotte → parents of Barbara and Heidi
+    // Martin married Barbara (cross-group couple)
+    // Thomas married Conny (in-group partner, no parents)
+    // Martin & Barbara → children: Patrick, Pascal
+    // Thomas → children: Marc, Nadja (only one parent listed)
+    const persons = [
+      makePerson('ernst', 'Ernst', 'Probst'),
+      makePerson('helene', 'Helene', 'Probst'),
+      makePerson('helmut', 'Helmut', 'Brekle'),
+      makePerson('lieselotte', 'Lieselotte', 'Brekle'),
+      makePerson('martin', 'Martin', 'Probst'),
+      makePerson('thomas', 'Thomas', 'Probst'),
+      makePerson('barbara', 'Barbara', 'Probst'),
+      makePerson('heidi', 'Heidi', 'Eisenbarth'),
+      makePerson('conny', 'Conny', 'Probst'),
+      makePerson('werner', 'Werner', 'Eisenbarth'),
+      makePerson('patrick', 'Patrick', 'Probst'),
+      makePerson('pascal', 'Pascal', 'Probst'),
+      makePerson('marc', 'Marc', 'Probst'),
+      makePerson('nadja', 'Nadja', 'Probst'),
+    ];
+    const edges: GraphEdge[] = [
+      // Ernst & Helene → Martin, Thomas
+      { id: 'r1', personAId: 'ernst', personBId: 'martin', type: 'biological_parent' },
+      { id: 'r2', personAId: 'helene', personBId: 'martin', type: 'biological_parent' },
+      { id: 'r3', personAId: 'ernst', personBId: 'thomas', type: 'biological_parent' },
+      { id: 'r4', personAId: 'helene', personBId: 'thomas', type: 'biological_parent' },
+      // Helmut & Lieselotte → Barbara, Heidi
+      { id: 'r5', personAId: 'helmut', personBId: 'barbara', type: 'biological_parent' },
+      { id: 'r6', personAId: 'lieselotte', personBId: 'barbara', type: 'biological_parent' },
+      { id: 'r7', personAId: 'helmut', personBId: 'heidi', type: 'biological_parent' },
+      { id: 'r8', personAId: 'lieselotte', personBId: 'heidi', type: 'biological_parent' },
+      // Marriages
+      { id: 'r9', personAId: 'martin', personBId: 'barbara', type: 'marriage' },
+      { id: 'r10', personAId: 'thomas', personBId: 'conny', type: 'marriage' },
+      { id: 'r11', personAId: 'heidi', personBId: 'werner', type: 'marriage' },
+      // Martin & Barbara → Patrick, Pascal
+      { id: 'r12', personAId: 'martin', personBId: 'patrick', type: 'biological_parent' },
+      { id: 'r13', personAId: 'barbara', personBId: 'patrick', type: 'biological_parent' },
+      { id: 'r14', personAId: 'martin', personBId: 'pascal', type: 'biological_parent' },
+      { id: 'r15', personAId: 'barbara', personBId: 'pascal', type: 'biological_parent' },
+      // Thomas → Marc, Nadja
+      { id: 'r16', personAId: 'thomas', personBId: 'marc', type: 'biological_parent' },
+      { id: 'r17', personAId: 'thomas', personBId: 'nadja', type: 'biological_parent' },
+    ];
+
+    const result = layoutFamilyGraph(persons, edges);
+
+    const posOf = (id: string) => {
+      const node = result.nodes.find((n) => n.person.id === id);
+      if (!node) throw new Error(`Node not found: ${id}`);
+      return { x: node.x, y: node.y };
+    };
+
+    const martinPos = posOf('martin');
+    const barbaraPos = posOf('barbara');
+    const patrickPos = posOf('patrick');
+    const pascalPos = posOf('pascal');
+    const marcPos = posOf('marc');
+    const nadjaPos = posOf('nadja');
+
+    // Martin and Barbara should be adjacent — no one between them on the X axis
+    const martinX = martinPos.x;
+    const barbaraX = barbaraPos.x;
+    const minCoupleX = Math.min(martinX, barbaraX);
+    const maxCoupleX = Math.max(martinX, barbaraX);
+
+    const gen1Nodes = result.nodes.filter(
+      (n) => n.y === martinPos.y && n.person.id !== 'martin' && n.person.id !== 'barbara',
+    );
+    const betweenCouple = gen1Nodes.filter((n) => n.x > minCoupleX && n.x < maxCoupleX);
+    expect(betweenCouple).toHaveLength(0);
+
+    // Patrick and Pascal should be centered under Martin+Barbara, not under Thomas
+    const coupleCenter = (martinX + barbaraX) / 2;
+    const childrenCenter = (patrickPos.x + pascalPos.x) / 2;
+    expect(Math.abs(childrenCenter - coupleCenter)).toBeLessThan(150);
+
+    // Marc and Nadja should NOT be interleaved between Patrick and Pascal
+    const patrickMinX = Math.min(patrickPos.x, pascalPos.x);
+    const patrickMaxX = Math.max(patrickPos.x, pascalPos.x);
+    const marcBetween = marcPos.x > patrickMinX && marcPos.x < patrickMaxX;
+    const nadjaBetween = nadjaPos.x > patrickMinX && nadjaPos.x < patrickMaxX;
+    expect(marcBetween || nadjaBetween).toBe(false);
+  });
 });
