@@ -244,5 +244,17 @@
   "toast_place_created": "Ort erstellt",
   "toast_place_updated": "Ort aktualisiert",
   "toast_place_deleted": "Ort gelöscht",
-  "toast_undo_failed": "Rückgängig machen fehlgeschlagen"
+  "toast_undo_failed": "Rückgängig machen fehlgeschlagen",
+  "media_viewer_counter": "{current} / {total}",
+  "media_viewer_prev": "Vorheriges",
+  "media_viewer_next": "Nächstes",
+  "media_select_mode": "Auswählen",
+  "media_select_all": "Alle auswählen",
+  "media_deselect_all": "Alle abwählen",
+  "media_select_cancel": "Auswahl aufheben",
+  "media_delete_selected": "Ausgewählte löschen ({count})",
+  "media_delete_selected_confirm": "Möchten Sie wirklich {count} Medien löschen?",
+  "media_upload_queued": "In Warteschlange",
+  "media_upload_complete": "Upload abgeschlossen",
+  "media_upload_items": "{done} / {total} hochgeladen"
 }

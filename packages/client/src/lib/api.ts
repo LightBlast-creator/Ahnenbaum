@@ -193,6 +193,82 @@ async function requestFormData<T>(path: string, formData: FormData): Promise<T> 
   }
 }
 
+// ── XHR upload with progress ────────────────────────────────────────
+
+export interface UploadProgressEvent {
+  loaded: number;
+  total: number;
+}
+
+/**
+ * Upload FormData via XMLHttpRequest for progress tracking.
+ * Returns a promise + abort handle so callers can cancel on unmount.
+ */
+function uploadWithProgress<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (event: UploadProgressEvent) => void,
+): { promise: Promise<T>; abort: () => void } {
+  const url = `${API_BASE}/${path}`;
+  const xhr = new XMLHttpRequest();
+
+  const promise = new Promise<T>((resolve, reject) => {
+    xhr.open('POST', url);
+
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress({ loaded: e.loaded, total: e.total });
+        }
+      });
+    }
+
+    xhr.addEventListener('load', async () => {
+      try {
+        const { markOnline } = await import('./connection');
+        markOnline();
+      } catch {
+        // ignore
+      }
+
+      if (xhr.status === 204) {
+        resolve(undefined as T);
+        return;
+      }
+
+      try {
+        const json: ApiResponse<T> = JSON.parse(xhr.responseText);
+        if (!json.ok) {
+          const err = (json as ApiErrorResponse).error;
+          reject(new ApiError(xhr.status, err.code, err.message, err.details));
+        } else {
+          resolve(json.data);
+        }
+      } catch {
+        reject(new ApiError(xhr.status, 'PARSE_ERROR', 'Failed to parse server response'));
+      }
+    });
+
+    xhr.addEventListener('error', async () => {
+      try {
+        const { markDisconnected } = await import('./connection');
+        markDisconnected();
+      } catch {
+        // ignore
+      }
+      reject(new NetworkError('Network request failed'));
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(new NetworkError('Upload aborted'));
+    });
+
+    xhr.send(formData);
+  });
+
+  return { promise, abort: () => xhr.abort() };
+}
+
 // ── Public API ──────────────────────────────────────────────────────
 
 export const api = {
@@ -214,5 +290,13 @@ export const api = {
 
   postFormData<T>(path: string, formData: FormData): Promise<T> {
     return requestFormData<T>(path, formData);
+  },
+
+  uploadFormData<T>(
+    path: string,
+    formData: FormData,
+    onProgress?: (event: UploadProgressEvent) => void,
+  ): { promise: Promise<T>; abort: () => void } {
+    return uploadWithProgress<T>(path, formData, onProgress);
   },
 };

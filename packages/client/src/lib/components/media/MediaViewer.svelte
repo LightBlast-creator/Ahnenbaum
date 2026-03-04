@@ -3,9 +3,24 @@
   import { api } from '$lib/api';
   import MediaViewerSidebar from './MediaViewerSidebar.svelte';
 
+  interface MediaLightboxItem {
+    id: string;
+    type: string;
+    originalFilename: string;
+    mimeType: string;
+    caption?: string | null;
+    description?: string | null;
+    notes?: string | null;
+    date?: string | null;
+    size: number;
+  }
+
   let {
     open = $bindable(false),
-    media,
+    items = [],
+    currentIndex = $bindable(0),
+    // Legacy single-item prop for backwards compat — if provided without items, wrap it
+    media: legacyMedia,
     onDelete,
     onUnlink,
     onSetPrimary,
@@ -13,17 +28,9 @@
     onToast,
   }: {
     open: boolean;
-    media?: {
-      id: string;
-      type: string;
-      originalFilename: string;
-      mimeType: string;
-      caption?: string | null;
-      description?: string | null;
-      notes?: string | null;
-      date?: string | null;
-      size: number;
-    } | null;
+    items?: MediaLightboxItem[];
+    currentIndex?: number;
+    media?: MediaLightboxItem | null;
     onDelete?: (id: string) => void;
     onUnlink?: (id: string) => void;
     onSetPrimary?: (id: string) => void;
@@ -31,9 +38,27 @@
     onToast?: (message: string, type: 'success' | 'error') => void;
   } = $props();
 
-  const API_BASE = '/api';
+  // Resolve the active items list — prefer `items` prop, fall back to wrapping legacy `media`
+  const resolvedItems = $derived(items.length > 0 ? items : legacyMedia ? [legacyMedia] : []);
+  const media = $derived(resolvedItems[currentIndex] ?? null);
+  const totalItems = $derived(resolvedItems.length);
+  const hasPrev = $derived(currentIndex > 0);
+  const hasNext = $derived(currentIndex < totalItems - 1);
 
+  const API_BASE = '/api';
   const fileUrl = $derived(media ? `${API_BASE}/media/${media.id}/file` : '');
+
+  // Preload adjacent images
+  const prevFileUrl = $derived(
+    hasPrev && resolvedItems[currentIndex - 1]?.type === 'image'
+      ? `${API_BASE}/media/${resolvedItems[currentIndex - 1].id}/file`
+      : null,
+  );
+  const nextFileUrl = $derived(
+    hasNext && resolvedItems[currentIndex + 1]?.type === 'image'
+      ? `${API_BASE}/media/${resolvedItems[currentIndex + 1].id}/file`
+      : null,
+  );
 
   let captionValue = $state('');
   let notesValue = $state('');
@@ -54,7 +79,6 @@
 
   async function saveMetadata() {
     if (!media || isSaving) return;
-    // Skip if nothing changed
     if (captionValue === originalCaption && notesValue === originalNotes) return;
     isSaving = true;
     try {
@@ -64,7 +88,7 @@
       });
       originalCaption = captionValue;
       originalNotes = notesValue;
-      onUpdated?.(updated);
+      onUpdated?.({ ...updated });
     } catch {
       onToast?.(m.toast_error(), 'error');
     } finally {
@@ -76,19 +100,40 @@
     open = false;
   }
 
+  function navigatePrev() {
+    if (hasPrev) currentIndex--;
+  }
+
+  function navigateNext() {
+    if (hasNext) currentIndex++;
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       event.preventDefault();
-      // Blur active element first so we don't trigger a save-then-close race
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
       close();
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      navigatePrev();
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      navigateNext();
     }
   }
 </script>
 
 {#if open && media}
+  <!-- Preload adjacent images -->
+  {#if prevFileUrl}
+    <link rel="preload" as="image" href={prevFileUrl} />
+  {/if}
+  {#if nextFileUrl}
+    <link rel="preload" as="image" href={nextFileUrl} />
+  {/if}
+
   <div class="viewer-backdrop" onclick={close} onkeydown={handleKeydown} role="presentation">
     <div
       class="viewer"
@@ -100,6 +145,31 @@
       onkeydown={handleKeydown}
     >
       <div class="viewer-main">
+        <!-- Item counter -->
+        {#if totalItems > 1}
+          <div class="viewer-counter">
+            {m.media_viewer_counter({
+              current: String(currentIndex + 1),
+              total: String(totalItems),
+            })}
+          </div>
+        {/if}
+
+        <!-- Prev arrow -->
+        {#if hasPrev}
+          <button
+            class="viewer-nav viewer-nav-prev"
+            onclick={(e) => {
+              e.stopPropagation();
+              navigatePrev();
+            }}
+            aria-label={m.media_viewer_prev()}
+          >
+            ‹
+          </button>
+        {/if}
+
+        <!-- Media content -->
         {#if media.type === 'image'}
           <img src={fileUrl} alt={media.caption ?? media.originalFilename} class="viewer-image" />
         {:else if media.type === 'pdf'}
@@ -113,6 +183,20 @@
             <span class="audio-icon">🎵</span>
             <audio src={fileUrl} controls></audio>
           </div>
+        {/if}
+
+        <!-- Next arrow -->
+        {#if hasNext}
+          <button
+            class="viewer-nav viewer-nav-next"
+            onclick={(e) => {
+              e.stopPropagation();
+              navigateNext();
+            }}
+            aria-label={m.media_viewer_next()}
+          >
+            ›
+          </button>
         {/if}
       </div>
 
@@ -160,6 +244,58 @@
     justify-content: center;
     background: var(--color-bg-secondary);
     overflow: hidden;
+    position: relative;
+  }
+
+  .viewer-counter {
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-3);
+    font-size: var(--font-size-sm);
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.5);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0;
+    transition:
+      opacity var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  .viewer-main:hover .viewer-nav {
+    opacity: 1;
+  }
+
+  .viewer-nav:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .viewer-nav-prev {
+    left: var(--space-3);
+  }
+
+  .viewer-nav-next {
+    right: var(--space-3);
   }
 
   .viewer-image {
@@ -214,6 +350,13 @@
   @media (max-width: 768px) {
     .viewer {
       flex-direction: column;
+    }
+
+    .viewer-nav {
+      opacity: 1;
+      width: 36px;
+      height: 36px;
+      font-size: 1.2rem;
     }
   }
 </style>
