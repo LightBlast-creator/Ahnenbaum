@@ -1,0 +1,222 @@
+/* =================================================================
+   Entity Page — Shared layout for collection pages
+   (Sources, Places, and future entity list pages)
+   
+   Use alongside forms.css. Provides: page wrapper, header, table,
+   card, add-form, empty state, and action button patterns.
+   ================================================================= */
+
+/* ── Page wrapper ── */
+
+.entity-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+/* ── Header ── */
+
+.entity-page .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.entity-page .page-header h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Card wrapper ── */
+
+.entity-page .card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.entity-page .add-form {
+  margin-bottom: var(--space-6);
+}
+
+/* ── Table layout ── */
+
+.entity-table {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.entity-table .table-header {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.entity-table .table-row {
+  display: grid;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.entity-table .table-row:last-child {
+  border-bottom: none;
+}
+
+.entity-table .table-row:hover {
+  background: var(--color-surface-hover);
+}
+
+.entity-table .table-row.editing {
+  background: var(--color-bg-secondary);
+}
+
+/* ── Cell styles ── */
+
+.entity-table .cell-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.entity-table .cell-muted {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.entity-table .col-actions {
+  display: flex;
+  gap: var(--space-1);
+  min-width: 60px;
+  justify-content: flex-end;
+}
+
+/* ── Inline editing ── */
+
+.entity-table .inline-input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ── Icon buttons ── */
+
+.entity-page .btn-icon {
+  padding: var(--space-1);
+  font-size: var(--font-size-sm);
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+}
+
+.entity-page .btn-icon:hover {
+  opacity: 1;
+}
+
+.entity-page .btn-icon.delete:hover {
+  color: var(--color-error);
+}
+
+/* ── Empty state ── */
+
+.entity-page .empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  font-style: italic;
+}
+
+/* ── Toolbar (search, filters, etc.) ── */
+
+.entity-page .toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.entity-page .search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.entity-page .search-icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.entity-page .search-input {
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  width: 260px;
+  transition: border-color var(--transition-fast);
+}
+
+.entity-page .search-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+/* ── Filter bar (pill tabs) ── */
+
+.entity-page .filter-bar {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-bg-secondary);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  width: fit-content;
+}
+
+.entity-page .filter-btn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.entity-page .filter-btn.active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.entity-page .filter-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .entity-page .page-header {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .entity-page .search-input {
+    width: 100%;
+  }
+}

@@ -157,10 +157,10 @@
   <title>{m.nav_people()} | {m.app_title()}</title>
 </svelte:head>
 
-<div class="persons-page">
-  <div class="persons-header">
+<div class="entity-page">
+  <header class="page-header">
     <h1>{m.nav_people()}</h1>
-    <div class="persons-toolbar">
+    <div class="toolbar">
       <div class="search-box">
         <svg
           class="search-icon"
@@ -184,7 +184,7 @@
         />
       </div>
     </div>
-  </div>
+  </header>
 
   {#if result.total === 0}
     {#if debouncedSearch}
@@ -229,62 +229,3 @@
 />
 
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
-
-<style>
-  .persons-page {
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .persons-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-4);
-    margin-bottom: var(--space-6);
-  }
-
-  .persons-header h1 {
-    font-size: var(--font-size-2xl);
-  }
-
-  .search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .search-icon {
-    position: absolute;
-    left: var(--space-3);
-    color: var(--color-text-muted);
-    pointer-events: none;
-  }
-
-  .search-input {
-    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    width: 260px;
-    transition: border-color var(--transition-fast);
-  }
-
-  .search-input:focus {
-    border-color: var(--color-primary);
-    outline: none;
-  }
-
-  @media (max-width: 768px) {
-    .persons-header {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .search-input {
-      width: 100%;
-    }
-  }
-</style>

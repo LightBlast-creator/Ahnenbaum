@@ -8,6 +8,7 @@
 @import './tokens.css';
 @import './modal.css';
 @import './forms.css';
+@import './entity-page.css';
 
 /* ── Reset ── */
 *,
@@ -190,6 +191,7 @@ h4 {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -114,21 +114,22 @@
   <title>{m.media_title()} | {m.app_title()}</title>
 </svelte:head>
 
-<div class="media-page">
+<div class="entity-page media-page">
   <header class="page-header">
     <h1>{m.media_title()}</h1>
-    <div class="filter-bar">
-      {#each typeFilters as filter (filter.value)}
-        <button
-          class="filter-btn"
-          class:active={filterType === filter.value}
-          onclick={() => (filterType = filter.value)}
-        >
-          {filter.label()}
-        </button>
-      {/each}
-    </div>
   </header>
+
+  <div class="filter-bar">
+    {#each typeFilters as filter (filter.value)}
+      <button
+        class="filter-btn"
+        class:active={filterType === filter.value}
+        onclick={() => (filterType = filter.value)}
+      >
+        {filter.label()}
+      </button>
+    {/each}
+  </div>
 
   {#if loading}
     <SkeletonLoader variant="card" count={6} />
@@ -159,56 +160,8 @@
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
 <style>
+  /* Media uses a wider max-width for the gallery grid */
   .media-page {
     max-width: 1200px;
-    margin: 0 auto;
-    padding: var(--space-6);
-  }
-
-  .page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-6);
-    flex-wrap: wrap;
-    gap: var(--space-3);
-  }
-
-  .page-header h1 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .filter-bar {
-    display: flex;
-    gap: var(--space-1);
-    background: var(--color-bg-secondary);
-    padding: var(--space-1);
-    border-radius: var(--radius-md);
-  }
-
-  .filter-btn {
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-    transition: all var(--transition-fast);
-  }
-
-  .filter-btn.active {
-    background: var(--color-surface);
-    color: var(--color-text);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .filter-btn:hover:not(.active) {
-    color: var(--color-text);
-  }
-
-  @media (max-width: 768px) {
-    .page-header {
-      flex-direction: column;
-      align-items: stretch;
-    }
   }
 </style>

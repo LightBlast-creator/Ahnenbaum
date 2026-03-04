@@ -4,6 +4,7 @@
   import Toast from '$lib/components/Toast.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
+  import { slide } from 'svelte/transition';
 
   interface SourceRow {
     id: string;
@@ -269,7 +270,7 @@
   <title>{m.source_title()} | {m.app_title()}</title>
 </svelte:head>
 
-<div class="sources-page">
+<div class="entity-page">
   <header class="page-header">
     <h1>{m.source_title()}</h1>
     <button class="btn-primary" onclick={() => (showAddForm = !showAddForm)}>
@@ -279,7 +280,7 @@
 
   <!-- Add form -->
   {#if showAddForm}
-    <div class="add-form card">
+    <div class="add-form card" transition:slide={{ duration: 200 }}>
       <div class="form-row">
         <div class="form-field">
           <label for="add-title">{m.source_name()} *</label>
@@ -335,213 +336,212 @@
   {:else if sources.length === 0}
     <p class="empty">{m.source_empty()}</p>
   {:else}
-    <div class="source-list">
+    <div class="entity-table">
+      <div class="table-header sources-grid">
+        <span>{m.source_name()}</span>
+        <span>{m.source_author()}</span>
+        <span>{m.source_publisher()}</span>
+        <span class="col-actions"></span>
+      </div>
       {#each sources as source (source.id)}
-        <div class="source-card card" class:expanded={expandedSourceId === source.id}>
-          <div
-            class="source-row"
-            role="button"
-            tabindex="0"
-            onclick={() => toggleExpand(source.id)}
-            onkeydown={(e) => e.key === 'Enter' && toggleExpand(source.id)}
-          >
-            <div class="source-info">
-              <span class="source-title">{source.title}</span>
-              {#if source.author}
-                <span class="source-meta">{source.author}</span>
-              {/if}
-              {#if source.publisher}
-                <span class="source-meta"
-                  >{source.publisher}{source.publicationDate
-                    ? `, ${source.publicationDate}`
-                    : ''}</span
-                >
-              {/if}
-            </div>
-            <div class="source-actions">
-              <button
-                class="btn-icon"
-                onclick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(source.id);
-                }}
-                title={m.source_delete()}>🗑️</button
-              >
-              <span class="chevron">{expandedSourceId === source.id ? '▼' : '▶'}</span>
-            </div>
-          </div>
+        <div
+          class="table-row sources-grid"
+          class:expanded={expandedSourceId === source.id}
+          role="button"
+          tabindex="0"
+          onclick={() => toggleExpand(source.id)}
+          onkeydown={(e) => e.key === 'Enter' && toggleExpand(source.id)}
+        >
+          <span class="cell-name">{source.title}</span>
+          <span class="cell-muted">{source.author ?? '—'}</span>
+          <span class="cell-muted">
+            {source.publisher ?? '—'}{source.publisher && source.publicationDate
+              ? `, ${source.publicationDate}`
+              : ''}
+          </span>
+          <span class="col-actions">
+            <button
+              class="btn-icon delete"
+              onclick={(e) => {
+                e.stopPropagation();
+                handleDelete(source.id);
+              }}
+              title={m.source_delete()}>🗑️</button
+            >
+            <span class="chevron">{expandedSourceId === source.id ? '▲' : '▼'}</span>
+          </span>
+        </div>
 
-          {#if expandedSourceId === source.id && expandedSource}
-            <div class="source-detail">
-              {#if editMode}
-                <!-- Edit form -->
-                <div class="edit-form">
-                  <div class="form-row">
-                    <div class="form-field">
-                      <label for="edit-title">{m.source_name()}</label><input
-                        id="edit-title"
-                        type="text"
-                        bind:value={editTitle}
-                      />
-                    </div>
-                    <div class="form-field">
-                      <label for="edit-author">{m.source_author()}</label><input
-                        id="edit-author"
-                        type="text"
-                        bind:value={editAuthor}
-                      />
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-field">
-                      <label for="edit-publisher">{m.source_publisher()}</label><input
-                        id="edit-publisher"
-                        type="text"
-                        bind:value={editPublisher}
-                      />
-                    </div>
-                    <div class="form-field">
-                      <label for="edit-pubdate">{m.source_pub_date()}</label><input
-                        id="edit-pubdate"
-                        type="text"
-                        bind:value={editPubDate}
-                      />
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-field">
-                      <label for="edit-repo">{m.source_repository()}</label><input
-                        id="edit-repo"
-                        type="text"
-                        bind:value={editRepository}
-                      />
-                    </div>
-                    <div class="form-field">
-                      <label for="edit-url">{m.source_url()}</label><input
-                        id="edit-url"
-                        type="url"
-                        bind:value={editUrl}
-                      />
-                    </div>
+        {#if expandedSourceId === source.id && expandedSource}
+          <div class="source-detail" transition:slide={{ duration: 200 }}>
+            {#if editMode}
+              <!-- Edit form -->
+              <div class="edit-form">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="edit-title">{m.source_name()}</label><input
+                      id="edit-title"
+                      type="text"
+                      bind:value={editTitle}
+                    />
                   </div>
                   <div class="form-field">
-                    <label for="edit-notes">{m.source_notes()}</label><textarea
-                      id="edit-notes"
-                      bind:value={editNotes}
-                      rows="2"
-                    ></textarea>
+                    <label for="edit-author">{m.source_author()}</label><input
+                      id="edit-author"
+                      type="text"
+                      bind:value={editAuthor}
+                    />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="edit-publisher">{m.source_publisher()}</label><input
+                      id="edit-publisher"
+                      type="text"
+                      bind:value={editPublisher}
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="edit-pubdate">{m.source_pub_date()}</label><input
+                      id="edit-pubdate"
+                      type="text"
+                      bind:value={editPubDate}
+                    />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="edit-repo">{m.source_repository()}</label><input
+                      id="edit-repo"
+                      type="text"
+                      bind:value={editRepository}
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="edit-url">{m.source_url()}</label><input
+                      id="edit-url"
+                      type="url"
+                      bind:value={editUrl}
+                    />
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="edit-notes">{m.source_notes()}</label><textarea
+                    id="edit-notes"
+                    bind:value={editNotes}
+                    rows="2"
+                  ></textarea>
+                </div>
+                <div class="form-actions">
+                  <button class="btn-secondary" onclick={() => (editMode = false)}
+                    >{m.person_cancel()}</button
+                  >
+                  <button class="btn-primary" onclick={saveEdit} disabled={saving}
+                    >{m.person_save()}</button
+                  >
+                </div>
+              </div>
+            {:else}
+              <!-- Read-only detail -->
+              <dl class="detail-grid">
+                {#if expandedSource.repositoryName}<dt>{m.source_repository()}</dt>
+                  <dd>{expandedSource.repositoryName}</dd>{/if}
+                {#if expandedSource.url}<dt>{m.source_url()}</dt>
+                  <dd>
+                    <a href={expandedSource.url} target="_blank" rel="noopener"
+                      >{expandedSource.url}</a
+                    >
+                  </dd>{/if}
+                {#if expandedSource.notes}<dt>{m.source_notes()}</dt>
+                  <dd>{expandedSource.notes}</dd>{/if}
+              </dl>
+              <button class="btn-icon" onclick={startEdit}>✏️ {m.source_edit()}</button>
+            {/if}
+
+            <!-- Citations -->
+            <div class="citations-section">
+              <div class="citations-header">
+                <h4>Citations ({expandedSource.citations.length})</h4>
+                <button class="btn-sm" onclick={() => (showCitationForm = !showCitationForm)}
+                  >+ {m.citation_add()}</button
+                >
+              </div>
+
+              {#if showCitationForm}
+                <div class="citation-form" transition:slide={{ duration: 200 }}>
+                  <div class="form-row">
+                    <div class="form-field">
+                      <label for="cit-detail">{m.citation_detail()}</label><input
+                        id="cit-detail"
+                        type="text"
+                        bind:value={citDetail}
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="cit-page">{m.citation_page()}</label><input
+                        id="cit-page"
+                        type="text"
+                        bind:value={citPage}
+                      />
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-field">
+                      <label for="cit-confidence">{m.citation_confidence()}</label>
+                      <select id="cit-confidence" bind:value={citConfidence}>
+                        <option value="">—</option>
+                        <option value="primary">Primary</option>
+                        <option value="secondary">Secondary</option>
+                        <option value="questionable">Questionable</option>
+                      </select>
+                    </div>
+                    <div class="form-field">
+                      <label for="cit-notes">{m.citation_notes()}</label><input
+                        id="cit-notes"
+                        type="text"
+                        bind:value={citNotes}
+                      />
+                    </div>
                   </div>
                   <div class="form-actions">
-                    <button class="btn-secondary" onclick={() => (editMode = false)}
-                      >{m.person_cancel()}</button
+                    <button
+                      class="btn-secondary"
+                      onclick={() => {
+                        showCitationForm = false;
+                        resetCitationForm();
+                      }}>{m.person_cancel()}</button
                     >
-                    <button class="btn-primary" onclick={saveEdit} disabled={saving}
+                    <button class="btn-primary" onclick={createCitation} disabled={saving}
                       >{m.person_save()}</button
                     >
                   </div>
                 </div>
-              {:else}
-                <!-- Read-only detail -->
-                <dl class="detail-grid">
-                  {#if expandedSource.repositoryName}<dt>{m.source_repository()}</dt>
-                    <dd>{expandedSource.repositoryName}</dd>{/if}
-                  {#if expandedSource.url}<dt>{m.source_url()}</dt>
-                    <dd>
-                      <a href={expandedSource.url} target="_blank" rel="noopener"
-                        >{expandedSource.url}</a
-                      >
-                    </dd>{/if}
-                  {#if expandedSource.notes}<dt>{m.source_notes()}</dt>
-                    <dd>{expandedSource.notes}</dd>{/if}
-                </dl>
-                <button class="btn-edit" onclick={startEdit}>✏️ {m.source_edit()}</button>
               {/if}
 
-              <!-- Citations -->
-              <div class="citations-section">
-                <div class="citations-header">
-                  <h4>Citations ({expandedSource.citations.length})</h4>
-                  <button class="btn-sm" onclick={() => (showCitationForm = !showCitationForm)}
-                    >+ {m.citation_add()}</button
-                  >
-                </div>
-
-                {#if showCitationForm}
-                  <div class="citation-form">
-                    <div class="form-row">
-                      <div class="form-field">
-                        <label for="cit-detail">{m.citation_detail()}</label><input
-                          id="cit-detail"
-                          type="text"
-                          bind:value={citDetail}
-                        />
+              {#if expandedSource.citations.length === 0}
+                <p class="empty-sm">{m.citation_empty()}</p>
+              {:else}
+                <div class="citation-list">
+                  {#each expandedSource.citations as cit (cit.id)}
+                    <div class="citation-card">
+                      <div class="citation-info">
+                        {#if cit.detail}<span class="cit-detail">{cit.detail}</span>{/if}
+                        {#if cit.page}<span class="cit-meta">p. {cit.page}</span>{/if}
+                        {#if cit.confidence}<span class="cit-badge">{cit.confidence}</span>{/if}
+                        {#if cit.notes}<span class="cit-notes">{cit.notes}</span>{/if}
                       </div>
-                      <div class="form-field">
-                        <label for="cit-page">{m.citation_page()}</label><input
-                          id="cit-page"
-                          type="text"
-                          bind:value={citPage}
-                        />
-                      </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-field">
-                        <label for="cit-confidence">{m.citation_confidence()}</label>
-                        <select id="cit-confidence" bind:value={citConfidence}>
-                          <option value="">—</option>
-                          <option value="primary">Primary</option>
-                          <option value="secondary">Secondary</option>
-                          <option value="questionable">Questionable</option>
-                        </select>
-                      </div>
-                      <div class="form-field">
-                        <label for="cit-notes">{m.citation_notes()}</label><input
-                          id="cit-notes"
-                          type="text"
-                          bind:value={citNotes}
-                        />
-                      </div>
-                    </div>
-                    <div class="form-actions">
                       <button
-                        class="btn-secondary"
-                        onclick={() => {
-                          showCitationForm = false;
-                          resetCitationForm();
-                        }}>{m.person_cancel()}</button
-                      >
-                      <button class="btn-primary" onclick={createCitation} disabled={saving}
-                        >{m.person_save()}</button
+                        class="btn-icon-sm"
+                        onclick={() => handleDeleteCitation(cit.id)}
+                        title={m.citation_delete()}>✕</button
                       >
                     </div>
-                  </div>
-                {/if}
-
-                {#if expandedSource.citations.length === 0}
-                  <p class="empty-sm">{m.citation_empty()}</p>
-                {:else}
-                  <div class="citation-list">
-                    {#each expandedSource.citations as cit (cit.id)}
-                      <div class="citation-card">
-                        <div class="citation-info">
-                          {#if cit.detail}<span class="cit-detail">{cit.detail}</span>{/if}
-                          {#if cit.page}<span class="cit-meta">p. {cit.page}</span>{/if}
-                          {#if cit.confidence}<span class="cit-badge">{cit.confidence}</span>{/if}
-                          {#if cit.notes}<span class="cit-notes">{cit.notes}</span>{/if}
-                        </div>
-                        <button
-                          class="btn-icon-sm"
-                          onclick={() => handleDeleteCitation(cit.id)}
-                          title={m.citation_delete()}>✕</button
-                        >
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
+                  {/each}
+                </div>
+              {/if}
             </div>
-          {/if}
-        </div>
+          </div>
+        {/if}
       {/each}
     </div>
   {/if}
@@ -568,137 +568,35 @@
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
 <style>
-  .sources-page {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: var(--space-6);
+  /* ── Page-specific grid ── */
+  .sources-grid {
+    grid-template-columns: 2fr 1fr 1fr auto;
   }
 
-  .page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-6);
-  }
-
-  .page-header h1 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    margin-bottom: var(--space-3);
-  }
-
-  .add-form {
-    margin-bottom: var(--space-6);
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
-  }
-
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .form-field label {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-  }
-
-  .form-field input,
-  .form-field textarea,
-  .form-field select {
-    padding: var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    background: var(--color-bg);
-    color: var(--color-text);
-  }
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-  }
-
-  .source-list {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .source-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .table-row {
     cursor: pointer;
-    gap: var(--space-3);
   }
 
-  .source-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    min-width: 0;
-  }
-
-  .source-title {
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--font-size-sm);
-  }
-
-  .source-meta {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-  }
-
-  .source-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    flex-shrink: 0;
-  }
-
-  .btn-icon {
-    padding: var(--space-1);
-    font-size: var(--font-size-sm);
-    opacity: 0.4;
-    transition: opacity var(--transition-fast);
-  }
-
-  .btn-icon:hover {
-    opacity: 1;
+  .table-row.expanded {
+    background: var(--color-bg-secondary);
   }
 
   .chevron {
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
-    transition: transform var(--transition-fast);
   }
 
+  /* ── Detail panel (inside table) ── */
   .source-detail {
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--color-border);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
   }
 
   .detail-grid {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: var(--space-1) var(--space-4);
+    gap: var(--space-2) var(--space-4);
     font-size: var(--font-size-sm);
     margin-bottom: var(--space-3);
   }
@@ -717,20 +615,11 @@
     color: var(--color-primary);
   }
 
-  .btn-edit {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+  .edit-form {
     margin-bottom: var(--space-4);
   }
 
-  .btn-edit:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
+  /* ── Citations ── */
   .citations-section {
     margin-top: var(--space-4);
     padding-top: var(--space-3);
@@ -748,6 +637,8 @@
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .btn-sm {
@@ -764,10 +655,11 @@
   }
 
   .citation-form {
-    background: var(--color-bg-secondary);
+    background: var(--color-surface);
     padding: var(--space-3);
     border-radius: var(--radius-md);
     margin-bottom: var(--space-3);
+    border: 1px solid var(--color-border);
   }
 
   .citation-list {
@@ -781,9 +673,15 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: var(--space-2) var(--space-3);
-    background: var(--color-bg-secondary);
+    background: var(--color-surface);
     border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
     gap: var(--space-2);
+    transition: background var(--transition-fast);
+  }
+
+  .citation-card:hover {
+    background: var(--color-surface-hover);
   }
 
   .citation-info {
@@ -837,26 +735,15 @@
     color: #ef4444;
   }
 
-  .empty {
-    text-align: center;
-    color: var(--color-text-muted);
-    padding: var(--space-8);
-    font-style: italic;
-  }
-
   .empty-sm {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     font-style: italic;
   }
 
-  .edit-form {
-    margin-bottom: var(--space-4);
-  }
-
   @media (max-width: 768px) {
-    .form-row {
-      grid-template-columns: 1fr;
+    .sources-grid {
+      grid-template-columns: 1fr auto;
     }
   }
 </style>

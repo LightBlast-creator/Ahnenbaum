@@ -141,7 +141,7 @@
   <title>{m.place_title()} | {m.app_title()}</title>
 </svelte:head>
 
-<div class="places-page">
+<div class="entity-page">
   <header class="page-header">
     <h1>{m.place_title()}</h1>
     <button class="btn-primary" onclick={() => (showAddForm = !showAddForm)}>
@@ -152,7 +152,7 @@
   <!-- Add form -->
   {#if showAddForm}
     <div class="add-form card">
-      <div class="form-row">
+      <div class="form-row places-grid">
         <div class="form-field">
           <label for="add-name">{m.place_name()} *</label>
           <input id="add-name" type="text" bind:value={addName} required />
@@ -187,24 +187,20 @@
   {:else if places.length === 0}
     <p class="empty">{m.place_empty()}</p>
   {:else}
-    <div class="place-table">
-      <div class="table-header">
-        <span class="col-name">{m.place_name()}</span>
-        <span class="col-lat">{m.place_latitude()}</span>
-        <span class="col-lng">{m.place_longitude()}</span>
+    <div class="entity-table">
+      <div class="table-header places-grid">
+        <span>{m.place_name()}</span>
+        <span>{m.place_latitude()}</span>
+        <span>{m.place_longitude()}</span>
         <span class="col-actions"></span>
       </div>
       {#each places as place (place.id)}
         {#if editingId === place.id}
-          <div class="table-row editing">
-            <span class="col-name"
-              ><input type="text" bind:value={editName} class="inline-input" /></span
+          <div class="table-row editing places-grid">
+            <span><input type="text" bind:value={editName} class="inline-input" /></span>
+            <span><input type="number" step="any" bind:value={editLat} class="inline-input" /></span
             >
-            <span class="col-lat"
-              ><input type="number" step="any" bind:value={editLat} class="inline-input" /></span
-            >
-            <span class="col-lng"
-              ><input type="number" step="any" bind:value={editLng} class="inline-input" /></span
+            <span><input type="number" step="any" bind:value={editLng} class="inline-input" /></span
             >
             <span class="col-actions">
               <button class="btn-icon" onclick={saveEdit} disabled={saving} title={m.person_save()}
@@ -214,10 +210,10 @@
             </span>
           </div>
         {:else}
-          <div class="table-row">
-            <span class="col-name place-name">{place.name}</span>
-            <span class="col-lat coord">{place.latitude ?? '—'}</span>
-            <span class="col-lng coord">{place.longitude ?? '—'}</span>
+          <div class="table-row places-grid">
+            <span class="cell-name">{place.name}</span>
+            <span class="cell-muted">{place.latitude ?? '—'}</span>
+            <span class="cell-muted">{place.longitude ?? '—'}</span>
             <span class="col-actions">
               <button class="btn-icon" onclick={() => startEdit(place)} title={m.place_edit()}
                 >✏️</button
@@ -247,177 +243,18 @@
 <Toast message={toastMessage} type={toastType} onDismiss={() => (toastMessage = '')} />
 
 <style>
-  .places-page {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: var(--space-6);
-  }
-
-  .page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-6);
-  }
-
-  .page-header h1 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    margin-bottom: var(--space-3);
-  }
-
-  .add-form {
-    margin-bottom: var(--space-6);
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
-  }
-
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .form-field label {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-  }
-
-  .form-field input {
-    padding: var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    background: var(--color-bg);
-    color: var(--color-text);
-  }
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-  }
-
-  .place-table {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-
-  .table-header {
-    display: grid;
+  /* Page-specific grid (shared classes handle everything else) */
+  .places-grid {
     grid-template-columns: 2fr 1fr 1fr auto;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-secondary);
-    border-bottom: 1px solid var(--color-border);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
-  .table-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr auto;
-    gap: var(--space-3);
-    align-items: center;
-    padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-border);
-    transition: background var(--transition-fast);
-  }
-
-  .table-row:last-child {
-    border-bottom: none;
-  }
-
-  .table-row:hover {
-    background: var(--color-surface-hover);
-  }
-
-  .table-row.editing {
-    background: var(--color-bg-secondary);
-  }
-
-  .place-name {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-  }
-
-  .coord {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
+  .cell-muted {
     font-variant-numeric: tabular-nums;
   }
 
-  .col-actions {
-    display: flex;
-    gap: var(--space-1);
-    min-width: 60px;
-    justify-content: flex-end;
-  }
-
-  .inline-input {
-    width: 100%;
-    padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm);
-    background: var(--color-bg);
-    color: var(--color-text);
-  }
-
-  .btn-icon {
-    padding: var(--space-1);
-    font-size: var(--font-size-sm);
-    opacity: 0.4;
-    transition: opacity var(--transition-fast);
-  }
-
-  .btn-icon:hover {
-    opacity: 1;
-  }
-
-  .btn-icon.delete:hover {
-    color: #ef4444;
-  }
-
-  .empty {
-    text-align: center;
-    color: var(--color-text-muted);
-    padding: var(--space-8);
-    font-style: italic;
-  }
-
   @media (max-width: 768px) {
-    .form-row {
-      grid-template-columns: 1fr;
-    }
-
-    .table-header,
-    .table-row {
+    .places-grid {
       grid-template-columns: 1fr auto;
-    }
-
-    .col-lat,
-    .col-lng {
-      display: none;
     }
   }
 </style>
