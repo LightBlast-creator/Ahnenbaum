@@ -200,6 +200,8 @@
   "tree_connection_style": "Verbindungsstil",
   "tree_minimap": "Minimap",
   "tree_generation": "Generation {n}",
+  "tree_expand": "Nachkommen anzeigen",
+  "tree_collapse": "Nachkommen ausblenden",
   "nav_sources": "Quellen",
   "nav_places": "Orte",
   "source_title": "Quellen",

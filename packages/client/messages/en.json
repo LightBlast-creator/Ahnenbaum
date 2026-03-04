@@ -200,6 +200,8 @@
   "tree_connection_style": "Connection style",
   "tree_minimap": "Minimap",
   "tree_generation": "Generation {n}",
+  "tree_expand": "Show descendants",
+  "tree_collapse": "Hide descendants",
   "nav_sources": "Sources",
   "nav_places": "Places",
   "source_title": "Sources",

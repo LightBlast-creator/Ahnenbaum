@@ -5,6 +5,7 @@
   import { getTreeBounds, type PositionedNode } from '$lib/utils/tree-layout';
   import type { GraphConnection, FamilyGroup } from '$lib/utils/family-graph-layout';
   import { CARD_HALF_HEIGHT, CARD_WIDTH } from '$lib/utils/tree-constants';
+  import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import * as m from '$lib/paraglide/messages';
 
   /** Generation-based color palette: cool→warm gradient (oldest→youngest). */
@@ -47,12 +48,28 @@
   type ConnectionStyle = 'bezier' | 'orthogonal';
   let connectionStyle = $state<ConnectionStyle>('bezier');
   let minimapVisible = $state(false);
+  let collapsedIds = $state<Set<string>>(new Set());
 
   $effect(() => {
     // SSR-safe: read from localStorage only in browser
     connectionStyle =
       (localStorage.getItem('ahnenbaum-connection-style') as ConnectionStyle) || 'bezier';
     minimapVisible = localStorage.getItem('ahnenbaum-minimap-visible') === 'true';
+    try {
+      const stored = localStorage.getItem('ahnenbaum-collapsed-ids');
+      if (stored) {
+        const ids = JSON.parse(stored) as string[];
+        // Only keep IDs that exist in the current node set
+        const nodeIdSet = new Set(nodes.map((n) => n.person.id));
+        const valid = ids.filter((id) => nodeIdSet.has(id));
+        collapsedIds = new Set(valid);
+        if (valid.length !== ids.length) {
+          localStorage.setItem('ahnenbaum-collapsed-ids', JSON.stringify(valid));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   });
 
   function setConnectionStyle(style: ConnectionStyle) {
@@ -65,13 +82,64 @@
     localStorage.setItem('ahnenbaum-minimap-visible', String(minimapVisible));
   }
 
+  // ── Expand / collapse logic ─────────────────────────────────────────
+
+  /** Parent→children index built from node.parentIds. */
+  const childrenOf = $derived.by(() => {
+    const map = new SvelteMap<string, string[]>();
+    for (const node of nodes) {
+      for (const pid of node.parentIds) {
+        const arr = map.get(pid) ?? [];
+        arr.push(node.person.id);
+        map.set(pid, arr);
+      }
+    }
+    return map;
+  });
+
+  /** IDs hidden because an ancestor is collapsed. */
+  const hiddenIds = $derived.by(() => {
+    const hidden = new SvelteSet<string>();
+    function walkDescendants(id: string) {
+      for (const childId of childrenOf.get(id) ?? []) {
+        if (!hidden.has(childId)) {
+          hidden.add(childId);
+          walkDescendants(childId);
+        }
+      }
+    }
+    for (const cid of collapsedIds) {
+      walkDescendants(cid);
+    }
+    return hidden;
+  });
+
+  const visibleNodes = $derived(nodes.filter((n) => !hiddenIds.has(n.person.id)));
+
+  const visibleFamilyGroups = $derived.by(() => {
+    const visibleSet = new Set(visibleNodes.map((n) => n.person.id));
+    return familyGroups.filter(
+      (g) =>
+        g.parentIds.every((id) => visibleSet.has(id)) &&
+        g.childIds.every((id) => visibleSet.has(id)),
+    );
+  });
+
+  const visibleConnections = $derived.by(() => {
+    // Build coordinate lookup from visible nodes
+    const coordKeys = new Set(visibleNodes.map((n) => `${n.x},${n.y}`));
+    return connections.filter(
+      (c) => coordKeys.has(`${c.x1},${c.y1}`) && coordKeys.has(`${c.x2},${c.y2}`),
+    );
+  });
+
   // ── Derived values ─────────────────────────────────────────────────
-  const bounds = $derived(getTreeBounds(nodes));
+  const bounds = $derived(getTreeBounds(visibleNodes));
 
   /** Unique generation layers for rendering generation labels. */
   const generationLayers = $derived.by(() => {
     const genBuckets: Record<number, number[]> = {};
-    for (const node of nodes) {
+    for (const node of visibleNodes) {
       (genBuckets[node.generation] ??= []).push(node.y);
     }
     return Object.entries(genBuckets)
@@ -127,6 +195,15 @@
       requestAnimationFrame(() => fitToScreen(false));
     }
   });
+
+  function toggleCollapse(personId: string) {
+    const next = new SvelteSet(collapsedIds);
+    if (next.has(personId)) next.delete(personId);
+    else next.add(personId);
+    collapsedIds = next;
+    localStorage.setItem('ahnenbaum-collapsed-ids', JSON.stringify([...next]));
+    requestAnimationFrame(() => fitToScreen());
+  }
 
   // Observe container size for minimap
   $effect(() => {
@@ -324,7 +401,7 @@
       {/each}
 
       <!-- T-connector family groups — each group in a UNIQUE color -->
-      {#each familyGroups as group, i (i)}
+      {#each visibleFamilyGroups as group, i (i)}
         {@const hasMultipleParents = group.parentPositions.length >= 2}
         {@const leftChild = group.childPositions.reduce((a, b) => (a.x < b.x ? a : b))}
         {@const rightChild = group.childPositions.reduce((a, b) => (a.x > b.x ? a : b))}
@@ -404,7 +481,7 @@
 
       <!-- Partner connections (childless couples only — gold double-line) -->
       <!-- Couples with children already have a colored ═ bond from the family group -->
-      {#each connections as conn, i (i)}
+      {#each visibleConnections as conn, i (i)}
         {#if conn.type === 'partner'}
           {@const pLeftX = Math.min(conn.x1, conn.x2) + CARD_WIDTH / 2}
           {@const pRightX = Math.max(conn.x1, conn.x2) - CARD_WIDTH / 2}
@@ -433,14 +510,17 @@
       {/each}
 
       <!-- Person cards (on top of everything) -->
-      {#each nodes as node (node.person.id)}
+      {#each visibleNodes as node (node.person.id)}
         <PersonCard
           person={node.person}
           x={node.x}
           y={node.y}
           generation={node.generation}
+          isCollapsed={collapsedIds.has(node.person.id)}
+          hasCollapsibleDescendants={(childrenOf.get(node.person.id)?.length ?? 0) > 0}
           onClick={onPersonClick}
           onDoubleClick={centerOnPerson}
+          onToggleCollapse={toggleCollapse}
         />
       {/each}
     </g>
@@ -463,7 +543,7 @@
   <!-- Minimap -->
   {#if minimapVisible}
     <TreeMinimap
-      {nodes}
+      nodes={visibleNodes}
       {bounds}
       {panX}
       {panY}

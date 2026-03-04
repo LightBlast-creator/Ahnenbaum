@@ -2,21 +2,28 @@
   import { formatLifespan } from '$lib/utils/date-format';
   import type { PersonWithDetails } from '$lib/api';
   import { CARD_WIDTH, CARD_HEIGHT } from '$lib/utils/tree-constants';
+  import * as m from '$lib/paraglide/messages';
 
   let {
     person,
     x,
     y,
     generation,
+    isCollapsed,
+    hasCollapsibleDescendants,
     onClick,
     onDoubleClick,
+    onToggleCollapse,
   }: {
     person: PersonWithDetails;
     x: number;
     y: number;
     generation?: number;
+    isCollapsed?: boolean;
+    hasCollapsibleDescendants?: boolean;
     onClick?: (personId: string) => void;
     onDoubleClick?: (personId: string) => void;
+    onToggleCollapse?: (personId: string) => void;
   } = $props();
 
   const initials = $derived(
@@ -30,8 +37,10 @@
   // ── Click / double-click discrimination ──────────────────────────
   let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function handleClick() {
+  function handleClick(event: MouseEvent) {
     if (!onClick) return;
+    // Don't navigate if the click was on the collapse button
+    if ((event.target as Element)?.closest?.('.collapse-btn')) return;
     // Delay single-click to allow dblclick to cancel it
     clickTimer = setTimeout(() => {
       clickTimer = null;
@@ -46,6 +55,18 @@
       clickTimer = null;
     }
     onDoubleClick?.(person.id);
+  }
+
+  function handleCollapseClick(event: MouseEvent | PointerEvent) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    onToggleCollapse?.(person.id);
+  }
+
+  function stopEvent(event: Event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
   }
 </script>
 
@@ -105,6 +126,52 @@
       G{generation}
     </text>
   {/if}
+
+  <!-- Sex icon -->
+  <g transform="translate({CARD_WIDTH - 28}, {CARD_HEIGHT / 2 - 6})" class="sex-icon">
+    {#if person.sex === 'male'}
+      <!-- Mars ♂ -->
+      <circle cx="4" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2" />
+      <line x1="6.5" y1="4.5" x2="10" y2="1" stroke="currentColor" stroke-width="1.2" />
+      <line x1="7" y1="1" x2="10" y2="1" stroke="currentColor" stroke-width="1.2" />
+      <line x1="10" y1="1" x2="10" y2="4" stroke="currentColor" stroke-width="1.2" />
+    {:else if person.sex === 'female'}
+      <!-- Venus ♀ -->
+      <circle cx="5.5" cy="4" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2" />
+      <line x1="5.5" y1="7.5" x2="5.5" y2="11" stroke="currentColor" stroke-width="1.2" />
+      <line x1="3.5" y1="9.5" x2="7.5" y2="9.5" stroke="currentColor" stroke-width="1.2" />
+    {:else if person.sex === 'intersex'}
+      <!-- Transgender ⚧ -->
+      <circle cx="5.5" cy="5.5" r="3" fill="none" stroke="currentColor" stroke-width="1.2" />
+      <line x1="7.5" y1="3.5" x2="10" y2="1" stroke="currentColor" stroke-width="1.2" />
+      <line x1="5.5" y1="8.5" x2="5.5" y2="11" stroke="currentColor" stroke-width="1.2" />
+    {:else}
+      <!-- Unknown ? -->
+      <text x="5.5" y="9" text-anchor="middle" font-size="9" fill="currentColor">?</text>
+    {/if}
+  </g>
+
+  <!-- Expand / collapse toggle -->
+  {#if hasCollapsibleDescendants && onToggleCollapse}
+    <g
+      class="collapse-btn"
+      transform="translate({CARD_WIDTH - 20}, {CARD_HEIGHT - 20})"
+      role="button"
+      tabindex="0"
+      onclick={handleCollapseClick}
+      onpointerdown={stopEvent}
+      onmousedown={stopEvent}
+      onkeydown={(e) => {
+        if (e.key === 'Enter') handleCollapseClick(e as unknown as MouseEvent);
+      }}
+      aria-label={isCollapsed ? m.tree_expand() : m.tree_collapse()}
+    >
+      <circle cx="8" cy="8" r="8" class="collapse-bg" />
+      <text x="8" y="11" text-anchor="middle" class="collapse-text">
+        {isCollapsed ? '+' : '−'}
+      </text>
+    </g>
+  {/if}
 </g>
 
 <style>
@@ -162,5 +229,33 @@
     font-weight: 600;
     font-family: var(--font-mono);
     opacity: 0.6;
+  }
+
+  .sex-icon {
+    color: var(--color-text-muted);
+    opacity: 0.6;
+  }
+
+  .collapse-btn {
+    cursor: pointer;
+  }
+
+  .collapse-bg {
+    fill: var(--color-bg-secondary, rgba(128, 128, 128, 0.2));
+    stroke: var(--color-border);
+    stroke-width: 1;
+    transition: fill 150ms ease;
+  }
+
+  .collapse-btn:hover .collapse-bg {
+    fill: var(--color-surface-hover, rgba(128, 128, 128, 0.35));
+  }
+
+  .collapse-text {
+    fill: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    pointer-events: none;
   }
 </style>
