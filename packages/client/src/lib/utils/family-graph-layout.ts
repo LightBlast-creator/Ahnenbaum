@@ -303,6 +303,25 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
       }
     }
 
+    // Sync siblings: children of the same parent set should share the max gen.
+    // When one sibling gets pulled down by a partner relationship, their
+    // siblings must follow so the parent isn't anchored at a too-low gen.
+    for (const [, children] of childrenOf.entries()) {
+      let maxSibGen = -Infinity;
+      for (const childId of children) {
+        const cg = generation.get(childId);
+        if (cg !== undefined && cg > maxSibGen) maxSibGen = cg;
+      }
+      if (maxSibGen === -Infinity) continue;
+      for (const childId of children) {
+        const cg = generation.get(childId);
+        if (cg !== undefined && cg < maxSibGen) {
+          generation.set(childId, maxSibGen);
+          changed = true;
+        }
+      }
+    }
+
     // Sync partners to share the max gen
     for (const [personId, partners] of partnersOf.entries()) {
       const pg = generation.get(personId);

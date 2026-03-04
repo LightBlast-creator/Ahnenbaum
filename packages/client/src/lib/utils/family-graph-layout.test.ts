@@ -300,4 +300,116 @@ describe('layoutFamilyGraph', () => {
     const nadjaBetween = nadjaPos.x > patrickMinX && nadjaPos.x < patrickMaxX;
     expect(marcBetween || nadjaBetween).toBe(false);
   });
+
+  it('aligns in-law parents to same generation as their counterpart parents (full family)', () => {
+    // Full Probst family tree from live data (simplified).
+    // Friedrich+Berta → Ernst. Ernst+Helene → Martin, Wolfgang, Thomas.
+    // Helmut+Lieselott → Barbara, Heidi.
+    // Martin married Barbara. Heidi married Werner.
+    // Wolfgang married Erika. Thomas married Conny.
+    // Martin+Barbara → Patrick, Pascal. Thomas → Marc, Nadja.
+    // Patrick+Tatu → Amara. Wolfgang+Erika → Anja, Steffanie.
+    // Anja+Basti → Philipp.
+    const persons = [
+      makePerson('friedrich', 'Friedrich', 'Probst'),
+      makePerson('berta', 'Berta', 'Pfeiffer'),
+      makePerson('ernst', 'Ernst', 'Probst'),
+      makePerson('helene', 'Helene', 'Probst'),
+      makePerson('helmut', 'Helmut', 'Brekle'),
+      makePerson('lieselott', 'Lieselott', 'Brekle'),
+      makePerson('martin', 'Martin', 'Probst'),
+      makePerson('wolfgang', 'Wolfgang', 'Probst'),
+      makePerson('thomas', 'Thomas', 'Probst'),
+      makePerson('barbara', 'Barbara', 'Probst'),
+      makePerson('heidi', 'Heidi', 'Eisenbarth'),
+      makePerson('werner', 'Werner', 'Eisenbarth'),
+      makePerson('erika', 'Erika', 'Probst'),
+      makePerson('conny', 'Conny', 'Probst'),
+      makePerson('patrick', 'Patrick', 'Probst'),
+      makePerson('pascal', 'Pascal', 'Probst'),
+      makePerson('tatu', 'Tatu', 'Probst'),
+      makePerson('lisa', 'Lisa', 'Probst'),
+      makePerson('amara', 'Amara', 'Probst'),
+      makePerson('marc', 'Marc', 'Probst'),
+      makePerson('nadja', 'Nadja', 'Probst'),
+      makePerson('anja', 'Anja', 'Probst'),
+      makePerson('steffanie', 'Steffanie', 'Probst'),
+      makePerson('basti', 'Basti', 'Probst-Böhm'),
+      makePerson('philipp', 'Philipp', 'Böhm'),
+    ];
+
+    const edges: GraphEdge[] = [
+      // Friedrich+Berta → Ernst
+      { id: 'e1', personAId: 'friedrich', personBId: 'ernst', type: 'biological_parent' },
+      { id: 'e2', personAId: 'berta', personBId: 'ernst', type: 'biological_parent' },
+      { id: 'e3', personAId: 'berta', personBId: 'friedrich', type: 'marriage' },
+      // Ernst+Helene
+      { id: 'e4', personAId: 'helene', personBId: 'ernst', type: 'marriage' },
+      { id: 'e5', personAId: 'ernst', personBId: 'martin', type: 'biological_parent' },
+      { id: 'e6', personAId: 'helene', personBId: 'martin', type: 'biological_parent' },
+      { id: 'e7', personAId: 'ernst', personBId: 'wolfgang', type: 'biological_parent' },
+      { id: 'e8', personAId: 'helene', personBId: 'wolfgang', type: 'biological_parent' },
+      { id: 'e9', personAId: 'ernst', personBId: 'thomas', type: 'biological_parent' },
+      { id: 'e10', personAId: 'helene', personBId: 'thomas', type: 'biological_parent' },
+      // Helmut+Lieselott → Barbara, Heidi
+      { id: 'e11', personAId: 'helmut', personBId: 'lieselott', type: 'marriage' },
+      { id: 'e12', personAId: 'helmut', personBId: 'barbara', type: 'biological_parent' },
+      { id: 'e13', personAId: 'lieselott', personBId: 'barbara', type: 'biological_parent' },
+      { id: 'e14', personAId: 'helmut', personBId: 'heidi', type: 'biological_parent' },
+      { id: 'e15', personAId: 'lieselott', personBId: 'heidi', type: 'biological_parent' },
+      // Marriages
+      { id: 'e16', personAId: 'martin', personBId: 'barbara', type: 'marriage' },
+      { id: 'e17', personAId: 'heidi', personBId: 'werner', type: 'marriage' },
+      { id: 'e18', personAId: 'erika', personBId: 'wolfgang', type: 'marriage' },
+      { id: 'e19', personAId: 'conny', personBId: 'thomas', type: 'marriage' },
+      { id: 'e20', personAId: 'tatu', personBId: 'patrick', type: 'marriage' },
+      { id: 'e21', personAId: 'lisa', personBId: 'pascal', type: 'marriage' },
+      { id: 'e22', personAId: 'basti', personBId: 'anja', type: 'marriage' },
+      // Martin+Barbara → Patrick, Pascal
+      { id: 'e23', personAId: 'martin', personBId: 'patrick', type: 'biological_parent' },
+      { id: 'e24', personAId: 'barbara', personBId: 'patrick', type: 'biological_parent' },
+      { id: 'e25', personAId: 'martin', personBId: 'pascal', type: 'biological_parent' },
+      { id: 'e26', personAId: 'barbara', personBId: 'pascal', type: 'biological_parent' },
+      // Patrick+Tatu → Amara
+      { id: 'e27', personAId: 'patrick', personBId: 'amara', type: 'biological_parent' },
+      { id: 'e28', personAId: 'tatu', personBId: 'amara', type: 'biological_parent' },
+      // Thomas → Marc, Nadja
+      { id: 'e29', personAId: 'thomas', personBId: 'marc', type: 'biological_parent' },
+      { id: 'e30', personAId: 'thomas', personBId: 'nadja', type: 'biological_parent' },
+      // Wolfgang+Erika → Anja, Steffanie
+      { id: 'e31', personAId: 'wolfgang', personBId: 'anja', type: 'biological_parent' },
+      { id: 'e32', personAId: 'erika', personBId: 'anja', type: 'biological_parent' },
+      { id: 'e33', personAId: 'wolfgang', personBId: 'steffanie', type: 'biological_parent' },
+      { id: 'e34', personAId: 'erika', personBId: 'steffanie', type: 'biological_parent' },
+      // Anja+Basti → Philipp
+      { id: 'e35', personAId: 'anja', personBId: 'philipp', type: 'biological_parent' },
+      { id: 'e36', personAId: 'basti', personBId: 'philipp', type: 'biological_parent' },
+    ];
+
+    const result = layoutFamilyGraph(persons, edges);
+
+    const genOf = (id: string) => {
+      const node = result.nodes.find((n) => n.person.id === id);
+      if (!node) throw new Error(`Node not found: ${id}`);
+      return node.generation;
+    };
+
+    // Friedrich + Berta should be at the top (gen 0)
+    expect(genOf('friedrich')).toBe(0);
+    expect(genOf('berta')).toBe(0);
+
+    // Helmut + Lieselott should be at gen 1 — same as Ernst + Helene
+    // NOT at gen 0 with Friedrich + Berta
+    expect(genOf('ernst')).toBe(1);
+    expect(genOf('helene')).toBe(1);
+    expect(genOf('helmut')).toBe(1);
+    expect(genOf('lieselott')).toBe(1);
+
+    // Children of Ernst+Helene and Helmut+Lieselott should be at gen 2
+    expect(genOf('martin')).toBe(2);
+    expect(genOf('barbara')).toBe(2);
+    expect(genOf('heidi')).toBe(2);
+    expect(genOf('wolfgang')).toBe(2);
+    expect(genOf('thomas')).toBe(2);
+  });
 });
