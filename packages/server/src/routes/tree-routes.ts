@@ -25,6 +25,13 @@ export function createTreeRoutes(db: BetterSQLite3Database): Hono {
     return apiSuccess(c, result.data);
   });
 
+  // GET /api/tree/stats — aggregated dashboard statistics
+  router.get('/stats', (c) => {
+    const result = treeService.getTreeStats(db);
+    if (!result.ok) return apiError(c, result.error);
+    return apiSuccess(c, result.data);
+  });
+
   // GET /api/tree/:id — ancestor pedigree for a single person
   router.get('/:id', (c) => {
     const id = c.req.param('id');

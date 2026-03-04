@@ -7,11 +7,14 @@
  * All methods return Result<T> — no thrown exceptions.
  */
 
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, sql } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, type Result } from '@ahnenbaum/core';
 import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
 import { relationships } from '../db/schema/index.ts';
+import { persons, personNames } from '../db/schema/persons.ts';
+import { events } from '../db/schema/events.ts';
+import { media, mediaLinks } from '../db/schema/media.ts';
 import { getPersonById, type PersonWithDetailsRow } from './person-service.ts';
 import { enrichPersonRows } from './person-enrichment.ts';
 
@@ -108,4 +111,176 @@ export function buildAncestorTree(
 
   const tree = buildNode(rootId, maxGenerations);
   return ok(tree);
+}
+
+// ── Tree Stats ──────────────────────────────────────────────────────
+
+export interface TreeStats {
+  personCount: number;
+  mediaCount: number;
+  relationshipCount: number;
+  eventCount: number;
+  // Health indicators
+  personsWithoutBirthDate: number;
+  orphanPersons: number;
+  personsWithoutPhoto: number;
+  // Family statistics
+  surnameDistribution: { surname: string; count: number }[];
+  personsByCentury: { century: string; count: number }[];
+  earliestBirthYear: number | null;
+  latestBirthYear: number | null;
+  averageLifespan: number | null;
+}
+
+/**
+ * Aggregate tree-wide statistics for the dashboard.
+ *
+ * Returns counts, health indicators, and family statistics
+ * using existing tables — no schema changes required.
+ */
+export function getTreeStats(db: BetterSQLite3Database): Result<TreeStats> {
+  // ── Basic counts ──
+  const personCount =
+    db
+      .select({ cnt: sql<number>`count(*)` })
+      .from(persons)
+      .where(isNull(persons.deletedAt))
+      .get()?.cnt ?? 0;
+
+  const mediaCount =
+    db
+      .select({ cnt: sql<number>`count(*)` })
+      .from(media)
+      .where(isNull(media.deletedAt))
+      .get()?.cnt ?? 0;
+
+  const relationshipCount =
+    db
+      .select({ cnt: sql<number>`count(*)` })
+      .from(relationships)
+      .where(isNull(relationships.deletedAt))
+      .get()?.cnt ?? 0;
+
+  const eventCount =
+    db
+      .select({ cnt: sql<number>`count(*)` })
+      .from(events)
+      .where(isNull(events.deletedAt))
+      .get()?.cnt ?? 0;
+
+  // ── Health indicators ──
+
+  // Persons without a birth event
+  const personsWithBirth = db
+    .select({ pid: events.personId })
+    .from(events)
+    .where(and(eq(events.type, 'birth'), isNull(events.deletedAt)))
+    .all()
+    .map((r) => r.pid);
+
+  const personsWithoutBirthDate = personCount - new Set(personsWithBirth).size;
+
+  // Orphan persons (no relationships at all)
+  const personsWithRels = new Set<string>();
+  db.select({ a: relationships.personAId, b: relationships.personBId })
+    .from(relationships)
+    .where(isNull(relationships.deletedAt))
+    .all()
+    .forEach((r) => {
+      personsWithRels.add(r.a);
+      personsWithRels.add(r.b);
+    });
+  const orphanPersons = personCount - personsWithRels.size;
+
+  // Persons without a primary photo
+  const personsWithPhoto = db
+    .select({ eid: mediaLinks.linkedEntityId })
+    .from(mediaLinks)
+    .where(and(eq(mediaLinks.linkedEntityType, 'person'), eq(mediaLinks.isPrimary, true)))
+    .all()
+    .map((r) => r.eid);
+  const personsWithoutPhoto = personCount - new Set(personsWithPhoto).size;
+
+  // ── Family statistics ──
+
+  // Surname distribution (top 10)
+  const surnameDistribution = db
+    .select({
+      surname: personNames.surname,
+      count: sql<number>`count(*)`,
+    })
+    .from(personNames)
+    .innerJoin(persons, eq(personNames.personId, persons.id))
+    .where(and(isNull(persons.deletedAt), eq(personNames.isPreferred, true)))
+    .groupBy(personNames.surname)
+    .orderBy(sql`count(*) desc`)
+    .limit(10)
+    .all()
+    .filter((r) => r.surname.trim() !== '');
+
+  // Birth year extraction helper: extract year from JSON date field
+  // GenealogyDate can be {type:"exact",date:"1985-03-15"} or {type:"range",from:"1850",to:"1860"}
+  const yearExpr = sql<string>`substr(COALESCE(json_extract(${events.date}, '$.date'), json_extract(${events.date}, '$.from')), 1, 4)`;
+
+  // Earliest and latest birth years
+  const birthYearRange = db
+    .select({
+      earliest: sql<number | null>`min(cast(${yearExpr} as integer))`,
+      latest: sql<number | null>`max(cast(${yearExpr} as integer))`,
+    })
+    .from(events)
+    .where(and(eq(events.type, 'birth'), isNull(events.deletedAt), sql`${events.date} IS NOT NULL`))
+    .get();
+
+  const earliestBirthYear = birthYearRange?.earliest ?? null;
+  const latestBirthYear = birthYearRange?.latest ?? null;
+
+  // Persons by century
+  const centuryExpr = sql<string>`(cast(${yearExpr} as integer) / 100 + 1)`;
+  const personsByCentury = db
+    .select({
+      century: sql<string>`${centuryExpr} || ''`,
+      count: sql<number>`count(distinct ${events.personId})`,
+    })
+    .from(events)
+    .where(and(eq(events.type, 'birth'), isNull(events.deletedAt), sql`${events.date} IS NOT NULL`))
+    .groupBy(centuryExpr)
+    .orderBy(centuryExpr)
+    .all()
+    .map((r) => ({
+      century: `${r.century}00s`,
+      count: r.count,
+    }));
+
+  // Average lifespan — persons with both birth and death events
+  const lifespanResult = db
+    .select({
+      avg: sql<number | null>`avg(
+        cast(substr(COALESCE(json_extract(d.date, '$.date'), json_extract(d.date, '$.from')), 1, 4) as integer)
+        - cast(substr(COALESCE(json_extract(b.date, '$.date'), json_extract(b.date, '$.from')), 1, 4) as integer)
+      )`,
+    })
+    .from(sql`events b`)
+    .innerJoin(sql`events d`, sql`b.person_id = d.person_id`)
+    .where(
+      sql`b.type = 'birth' AND d.type = 'death' AND b.deleted_at IS NULL AND d.deleted_at IS NULL AND b.date IS NOT NULL AND d.date IS NOT NULL`,
+    )
+    .get();
+
+  const averageLifespan = lifespanResult?.avg != null ? Math.round(lifespanResult.avg) : null;
+
+  return ok({
+    personCount,
+    mediaCount,
+    relationshipCount,
+    eventCount,
+    personsWithoutBirthDate,
+    orphanPersons,
+    personsWithoutPhoto,
+    surnameDistribution,
+    personsByCentury,
+    earliestBirthYear,
+    latestBirthYear,
+    averageLifespan,
+  });
 }

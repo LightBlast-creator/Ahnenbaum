@@ -10,6 +10,8 @@
   import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
+  import TreeHealth from '$lib/components/TreeHealth.svelte';
+  import FamilyStats from '$lib/components/FamilyStats.svelte';
   import { formatLifespan } from '$lib/utils/date-format';
   import { avatarGradient } from '$lib/utils/avatar-color';
 
@@ -21,6 +23,25 @@
   // Animated display values for count-up effect
   let displayPersonCount = $state(0);
   let displayMediaCount = $state(0);
+  let displayRelCount = $state(0);
+  let displayEventCount = $state(0);
+
+  // Tree stats from /api/tree/stats
+  interface TreeStats {
+    personCount: number;
+    mediaCount: number;
+    relationshipCount: number;
+    eventCount: number;
+    personsWithoutBirthDate: number;
+    orphanPersons: number;
+    personsWithoutPhoto: number;
+    surnameDistribution: { surname: string; count: number }[];
+    personsByCentury: { century: string; count: number }[];
+    earliestBirthYear: number | null;
+    latestBirthYear: number | null;
+    averageLifespan: number | null;
+  }
+  let treeStats = $state<TreeStats | null>(null);
 
   function animateCountUp(target: number, onUpdate: (v: number) => void, duration = 600) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -61,6 +82,15 @@
       mediaCount = 0;
       recentPersons = [];
     }
+
+    // Fetch tree stats (non-blocking — dashboard works without it)
+    try {
+      const statsResponse = await api.get<TreeStats>('tree/stats');
+      treeStats = statsResponse;
+    } catch {
+      treeStats = null;
+    }
+
     loading = false;
   }
 
@@ -73,6 +103,10 @@
     if (!loading && personCount > 0) {
       animateCountUp(personCount, (v) => (displayPersonCount = v));
       animateCountUp(mediaCount, (v) => (displayMediaCount = v));
+      if (treeStats) {
+        animateCountUp(treeStats.relationshipCount, (v) => (displayRelCount = v));
+        animateCountUp(treeStats.eventCount, (v) => (displayEventCount = v));
+      }
     }
   });
 
@@ -116,9 +150,14 @@
         <span class="stat-label">{m.nav_media()}</span>
       </a>
       <a href="{base}/tree" class="stat-card animate-in" style="--stagger-index: 2">
-        <span class="stat-icon">🌳</span>
-        <span class="stat-value">&rarr;</span>
-        <span class="stat-label">{m.dashboard_view_tree()}</span>
+        <span class="stat-icon">💍</span>
+        <span class="stat-value">{displayRelCount}</span>
+        <span class="stat-label">{m.dashboard_relationships()}</span>
+      </a>
+      <a href="{base}/tree" class="stat-card animate-in" style="--stagger-index: 3">
+        <span class="stat-icon">📅</span>
+        <span class="stat-value">{displayEventCount}</span>
+        <span class="stat-label">{m.dashboard_events()}</span>
       </a>
     </section>
 
@@ -137,7 +176,7 @@
                 <a
                   href="{base}/persons/{person.id}"
                   class="recent-card animate-in"
-                  style="--stagger-index: {i + 3}"
+                  style="--stagger-index: {i + 4}"
                 >
                   <div
                     class="recent-avatar"
@@ -170,6 +209,21 @@
               {/each}
             </div>
           </section>
+        {/if}
+
+        {#if treeStats}
+          <TreeHealth
+            missingBirthDate={treeStats.personsWithoutBirthDate}
+            orphanPersons={treeStats.orphanPersons}
+            missingPhoto={treeStats.personsWithoutPhoto}
+          />
+          <FamilyStats
+            surnameDistribution={treeStats.surnameDistribution}
+            personsByCentury={treeStats.personsByCentury}
+            earliestBirthYear={treeStats.earliestBirthYear}
+            latestBirthYear={treeStats.latestBirthYear}
+            averageLifespan={treeStats.averageLifespan}
+          />
         {/if}
       </div>
 
@@ -266,7 +320,7 @@
   /* ── Stats ── */
   .dashboard-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--space-4);
     margin-bottom: var(--space-6);
   }
@@ -460,7 +514,7 @@
 
   @media (max-width: 768px) {
     .dashboard-stats {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>
