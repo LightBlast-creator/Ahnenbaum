@@ -12,8 +12,10 @@ Search the [SkillsMP](https://skillsmp.com) marketplace for community-built agen
 Use Bearer token authentication with the project's API key:
 
 ```bash
-Authorization: Bearer sk_live_skillsmp_ohqh3YuF4wbk7dVfcHcwD1UHHRtPRo9rYbKgh9HFdIo
+Authorization: Bearer $SKILLSMP_API_KEY
 ```
+
+> **Setup**: Set the `SKILLSMP_API_KEY` environment variable with your SkillsMP API key.
 
 ## API Endpoints
 
@@ -23,7 +25,7 @@ Best for natural language queries about capabilities or project needs:
 
 ```bash
 curl -X GET "https://skillsmp.com/api/v1/skills/ai-search?q=YOUR_QUERY" \
-     -H "Authorization: Bearer sk_live_skillsmp_ohqh3YuF4wbk7dVfcHcwD1UHHRtPRo9rYbKgh9HFdIo"
+     -H "Authorization: Bearer $SKILLSMP_API_KEY"
 ```
 
 **Example queries:**
@@ -37,7 +39,7 @@ For exact skill names or specific terms:
 
 ```bash
 curl -X GET "https://skillsmp.com/api/v1/skills/search?q=KEYWORD&limit=10&sortBy=stars" \
-     -H "Authorization: Bearer sk_live_skillsmp_ohqh3YuF4wbk7dVfcHcwD1UHHRtPRo9rYbKgh9HFdIo"
+     -H "Authorization: Bearer $SKILLSMP_API_KEY"
 ```
 
 **Parameters:**

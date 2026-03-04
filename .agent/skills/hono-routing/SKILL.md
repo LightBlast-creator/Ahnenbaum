@@ -276,7 +276,7 @@ app.use(
 )
 ```
 
-**Built-in Middleware Reference**: See `references/middleware-catalog.md`
+
 
 #### Middleware Chaining
 
@@ -438,7 +438,7 @@ app.get('/', (c) => {
 })
 ```
 
-**Advanced Pattern**: See `templates/context-extension.ts`
+
 
 ---
 
@@ -575,7 +575,8 @@ app.post('/users', vValidator('json', schema), (c) => {
 })
 ```
 
-**Zod vs Valibot**: See `references/validation-libraries.md`
+
+
 
 #### Validation with Typia
 
@@ -626,7 +627,7 @@ app.post('/users', arktypeValidator('json', schema), (c) => {
 })
 ```
 
-**Comparison**: See `references/validation-libraries.md` for detailed comparison
+
 
 ---
 
@@ -768,7 +769,7 @@ import type { UserRoutes } from './app'
 const userClient = hc<UserRoutes>('http://localhost:8787')
 ```
 
-**Deep Dive**: See `references/rpc-guide.md`
+
 
 ---
 
@@ -1173,31 +1174,18 @@ app.get('/', (c) => {
 
 ---
 
-## File Templates
 
-All templates are available in the `templates/` directory:
-
-- **routing-patterns.ts** - Route params, query params, wildcards, grouping
-- **middleware-composition.ts** - Middleware chaining, built-in middleware
-- **validation-zod.ts** - Zod validation with custom hooks
-- **validation-valibot.ts** - Valibot validation
-- **rpc-pattern.ts** - Type-safe RPC client/server
-- **error-handling.ts** - HTTPException, onError, custom errors
-- **context-extension.ts** - c.set/c.get, custom context types
-- **package.json** - All dependencies
-
-Copy these files to your project and customize as needed.
 
 ---
 
 ## Reference Documentation
 
-For deeper understanding, see:
-
-- **middleware-catalog.md** - Complete built-in Hono middleware reference
-- **validation-libraries.md** - Zod vs Valibot vs Typia vs ArkType comparison
-- **rpc-guide.md** - RPC pattern deep dive, performance optimization
-- **top-errors.md** - Common Hono errors with solutions
+- **Hono**: https://hono.dev
+- **Hono Routing**: https://hono.dev/docs/api/routing
+- **Hono Middleware**: https://hono.dev/docs/guides/middleware
+- **Hono Validation**: https://hono.dev/docs/guides/validation
+- **Hono RPC**: https://hono.dev/docs/guides/rpc
+- **Hono Context**: https://hono.dev/docs/api/context
 
 ---
 
@@ -1251,8 +1239,7 @@ All patterns in this skill have been validated in production.
 
 **Questions? Issues?**
 
-1. Check `references/top-errors.md` first
-2. Verify all steps in the setup process
+1. Check the official docs at https://hono.dev first
 3. Ensure `await next()` is called in middleware
 4. Ensure RPC routes use `const route = app.get(...)` pattern
 5. Check official docs: https://hono.dev

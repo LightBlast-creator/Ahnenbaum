@@ -63,13 +63,7 @@ To optimize workflow performance:
 4. Use `actions/cache@v3` with appropriate cache keys
 5. Implement cache restoration fallbacks for partial matches
 
-## Resources
 
-Consult `references/github-actions-best-practices.md` for workflow optimization patterns and security best practices.
-
-Use `scripts/generate_ci_workflow.py` to scaffold workflow files based on detected project configuration.
-
-Reference `assets/workflow-templates/` for starter templates for common frameworks (Next.js, React, Node.js).
 
 ## Implementation Steps
 
@@ -82,7 +76,6 @@ To implement complete CI/CD with GitHub Actions:
    - Check for linting configuration
 
 2. **Generate Workflow Files**
-   - Use `scripts/generate_ci_workflow.py` with detected configuration
    - Customize jobs based on project requirements
    - Add matrix builds if testing multiple environments
 
@@ -139,7 +132,7 @@ To handle full-stack deployments:
 
 ## Deployment Providers
 
-Consult `references/deployment-providers.md` for platform-specific configuration:
+Configure platform-specific deployment:
 
 - **Vercel**: Use vercel-action with project configuration
 - **Netlify**: Use netlify-cli with site ID and auth token

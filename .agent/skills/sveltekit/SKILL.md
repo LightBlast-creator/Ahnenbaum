@@ -496,8 +496,3 @@ export const csr = true; // Enable client JS
 | Wrong action method    | Forms need method="POST"            |
 | Forgetting await       | await goto() and invalidate()       |
 
-## Reference Files
-
--   [references/routing.md](references/routing.md) - Advanced routing
--   [references/forms.md](references/forms.md) - Form patterns
--   [references/deployment.md](references/deployment.md) - Deployment guides

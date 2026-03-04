@@ -1,7 +1,6 @@
 ---
 name: skill-index
 description: Master index of all available agent skills. ALWAYS consult this first before starting any task to identify relevant skills. Triggers on any development task, coding request, or when planning implementation.
-always-load: true
 ---
 
 # Skill Index (Metaskill)
@@ -15,7 +14,7 @@ always-load: true
 ### 🌳 Family Tree & Domain
 | Skill | Use When |
 |-------|----------|
-| *(none yet)* | *Install via `skillsmp-search` as needed* |
+| `genealogy` | Data modeling, GEDCOM, dates, evidence, relationships, domain logic |
 
 ### 🎨 Frontend & UI (SvelteKit)
 | Skill | Use When |
@@ -47,6 +46,11 @@ always-load: true
 |-------|----------|
 | `npm-workspaces` | npm workspaces, package deps, build ordering, cross-package development |
 
+### 🛠️ Skill Development
+| Skill | Use When |
+|-------|---------|
+| `skill-creator` | Create new skills, improve existing skills, run evals, benchmark skills |
+
 ### 🔍 Discovery
 | Skill | Use When |
 |-------|----------|
@@ -73,7 +77,9 @@ Starting a task?
 │
 ├─ Monorepo / workspaces? → Load: npm-workspaces
 │
-├─ Auth / GEDCOM / genealogy? → Search for relevant domain skills
+├─ Auth / GEDCOM / genealogy? → Load: genealogy
+│
+├─ Creating or improving a skill? → Load: skill-creator
 │
 └─ Need new capability? → Load: skillsmp-search
 ```

@@ -1,6 +1,5 @@
 ---
 name: npm-workspaces
-# prettier-ignore
 description: Use when managing npm workspaces monorepos - package dependencies, build ordering, cross-package development, and publishing workflows
 ---
 

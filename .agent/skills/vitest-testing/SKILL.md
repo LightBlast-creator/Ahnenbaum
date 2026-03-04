@@ -231,8 +231,3 @@ describe('API endpoints', () => {
 - Share expensive fixtures with `beforeAll()`
 - Aim for 80%+ coverage but don't chase 100%
 
-## See Also
-
-- `test-quality-analysis` - Detecting test smells
-- `playwright-testing` - E2E testing
-- `mutation-testing` - Validate test effectiveness
