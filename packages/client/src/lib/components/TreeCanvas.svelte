@@ -318,7 +318,7 @@
           class:gen-even={i % 2 === 0}
           class:gen-odd={i % 2 !== 0}
         />
-        <text x={bounds.minX - 120} y={layer.y + 5} class="generation-label">
+        <text x={bounds.minX - 260} y={layer.y + 5} class="generation-label">
           {m.tree_generation({ n: String(layer.generation + 1) })}
         </text>
       {/each}
