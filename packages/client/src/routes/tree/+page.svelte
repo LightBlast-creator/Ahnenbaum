@@ -10,7 +10,7 @@
     type ServerPersonResponse,
   } from '$lib/api';
   import TreeCanvas from '$lib/components/TreeCanvas.svelte';
-  import ChartView from '$lib/components/charts/ChartView.svelte';
+
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { layoutAncestorTree } from '$lib/utils/tree-layout';
   import type { TreeData } from '$lib/utils/tree-layout';
@@ -22,10 +22,8 @@
   import type { PositionedNode } from '$lib/utils/tree-layout';
   import type { GraphConnection, FamilyGroup } from '$lib/utils/family-graph-layout';
 
-  type ViewMode = 'interactive' | 'ancestor' | 'descendant';
-
   const rootIdParam = $derived(new URLSearchParams(page.url.search).get('root'));
-  let viewMode = $state<ViewMode>('interactive');
+
   let nodes = $state<PositionedNode[]>([]);
   let connections = $state<GraphConnection[]>([]);
   let familyGroups = $state<FamilyGroup[]>([]);
@@ -95,20 +93,12 @@
 
   $effect(() => {
     void rootIdParam;
-    if (viewMode === 'interactive') {
-      loadTree();
-    }
+    loadTree();
   });
 
   function handlePersonClick(personId: string) {
     goto(resolveRoute('/persons/[id]', { id: personId }));
   }
-
-  const viewModes: { value: ViewMode; label: () => string }[] = [
-    { value: 'interactive', label: () => m.chart_interactive_tree() },
-    { value: 'ancestor', label: () => m.chart_ancestor() },
-    { value: 'descendant', label: () => m.chart_descendant() },
-  ];
 </script>
 
 <svelte:head>
@@ -116,27 +106,7 @@
 </svelte:head>
 
 <div class="tree-page">
-  <!-- View mode selector (only when a root person is selected) -->
-  {#if rootIdParam}
-    <div class="view-selector" role="tablist" aria-label={m.chart_type()}>
-      {#each viewModes as mode (mode.value)}
-        <button
-          class="view-tab"
-          class:active={viewMode === mode.value}
-          role="tab"
-          aria-selected={viewMode === mode.value}
-          onclick={() => (viewMode = mode.value)}
-        >
-          {mode.label()}
-        </button>
-      {/each}
-    </div>
-  {/if}
-
-  <!-- Chart views -->
-  {#if viewMode !== 'interactive' && rootIdParam}
-    <ChartView personId={rootIdParam} chartType={viewMode} />
-  {:else if loading}
+  {#if loading}
     <div class="tree-status">{m.loading()}</div>
   {:else if nodes.length === 0}
     <div class="tree-empty-wrapper">
@@ -165,36 +135,6 @@
     position: relative;
     display: flex;
     flex-direction: column;
-  }
-
-  .view-selector {
-    display: flex;
-    gap: var(--space-1);
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    flex-shrink: 0;
-    z-index: var(--z-dropdown);
-  }
-
-  .view-tab {
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-    transition: all var(--transition-fast);
-    white-space: nowrap;
-  }
-
-  .view-tab:hover {
-    background: var(--color-surface-hover);
-    color: var(--color-text);
-  }
-
-  .view-tab.active {
-    background: var(--color-primary-light);
-    color: var(--color-primary);
-    font-weight: var(--font-weight-medium);
   }
 
   .tree-status {

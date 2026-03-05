@@ -63,6 +63,12 @@ export async function discoverPlugins(pluginDir: string): Promise<LoadedPlugin[]
       continue;
     }
 
+    // Skip plugins that have a .disabled marker file
+    if (existsSync(join(entryPath, '.disabled'))) {
+      console.info(`[PluginLoader] Skipping disabled plugin: ${entry}`);
+      continue;
+    }
+
     // Skip directories without a src/index or dist/index
     const candidates = [
       join(entryPath, 'src', 'index.ts'),
