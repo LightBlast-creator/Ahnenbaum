@@ -202,9 +202,10 @@ export async function uploadMedia(
 }
 
 /**
- * Get a media record by ID.
+ * Look up a non-deleted media row or return a NOT_FOUND error.
+ * Shared guard used by getMediaById, updateMedia, and deleteMedia.
  */
-export function getMediaById(
+function guardMediaExists(
   db: BetterSQLite3Database,
   id: string,
 ): Result<typeof media.$inferSelect> {
@@ -218,6 +219,16 @@ export function getMediaById(
 }
 
 /**
+ * Get a media record by ID.
+ */
+export function getMediaById(
+  db: BetterSQLite3Database,
+  id: string,
+): Result<typeof media.$inferSelect> {
+  return guardMediaExists(db, id);
+}
+
+/**
  * Update media metadata.
  */
 export function updateMedia(
@@ -225,12 +236,8 @@ export function updateMedia(
   id: string,
   input: UpdateMediaInput,
 ): Result<typeof media.$inferSelect> {
-  const existing = db.select().from(media).where(eq(media.id, id)).get();
-  if (!existing || existing.deletedAt) {
-    return err('NOT_FOUND', `Media with id '${id}' not found`, {
-      code: 'MEDIA_NOT_FOUND',
-    });
-  }
+  const guard = guardMediaExists(db, id);
+  if (!guard.ok) return guard;
 
   db.update(media)
     .set({
@@ -275,12 +282,8 @@ export async function deleteMedia(
   storage: StorageAdapter,
   id: string,
 ): Promise<Result<void>> {
-  const row = db.select().from(media).where(eq(media.id, id)).get();
-  if (!row || row.deletedAt) {
-    return err('NOT_FOUND', `Media with id '${id}' not found`, {
-      code: 'MEDIA_NOT_FOUND',
-    });
-  }
+  const guard = guardMediaExists(db, id);
+  if (!guard.ok) return guard;
 
   // Soft-delete in DB
   db.update(media).set({ deletedAt: now(), updatedAt: now() }).where(eq(media.id, id)).run();

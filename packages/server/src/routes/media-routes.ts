@@ -99,28 +99,44 @@ export function createMediaRoutes(
     return apiSuccess(c, result.data);
   });
 
+  // ── Shared file-serving helper ──────────────────────────────────────
+  /**
+   * Load a file from storage and return it as a streaming Response.
+   * Returns an apiError 404 if the file is missing on disk.
+   */
+  async function serveFile(
+    c: import('hono').Context,
+    id: string,
+    filename: string,
+    contentType: string,
+    disposition?: string,
+  ) {
+    const fileData = await storage.get(id, filename);
+    if (!fileData) {
+      return apiError(c, { code: 'NOT_FOUND', message: 'Media file not found on disk' });
+    }
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Content-Length': fileData.length.toString(),
+    };
+    if (disposition) headers['Content-Disposition'] = disposition;
+    return new Response(new Uint8Array(fileData), { status: 200, headers });
+  }
+
   // GET /api/media/:id/file — stream original file
   router.get('/:id/file', async (c) => {
     const id = c.req.param('id');
     const result = mediaService.getMediaById(db, id);
     if (!result.ok) return apiError(c, result.error);
 
-    const fileData = await storage.get(id, result.data.originalFilename);
-    if (!fileData) {
-      return apiError(c, {
-        code: 'NOT_FOUND',
-        message: 'Media file not found on disk',
-      });
-    }
-
-    return new Response(new Uint8Array(fileData), {
-      status: 200,
-      headers: {
-        'Content-Type': result.data.mimeType,
-        'Content-Length': fileData.length.toString(),
-        'Content-Disposition': `inline; filename="${result.data.originalFilename.replace(/["/\\\r\n]/g, '_')}"`,
-      },
-    });
+    const safeName = result.data.originalFilename.replace(/["/\\\r\n]/g, '_');
+    return serveFile(
+      c,
+      id,
+      result.data.originalFilename,
+      result.data.mimeType,
+      `inline; filename="${safeName}"`,
+    );
   });
 
   // GET /api/media/:id/thumb — stream thumbnail (fallback to original)
@@ -140,23 +156,8 @@ export function createMediaRoutes(
         },
       });
     }
-
     // No thumbnail — fall back to original file (graceful degradation)
-    const fileData = await storage.get(id, result.data.originalFilename);
-    if (!fileData) {
-      return apiError(c, {
-        code: 'NOT_FOUND',
-        message: 'Media file not found on disk',
-      });
-    }
-
-    return new Response(new Uint8Array(fileData), {
-      status: 200,
-      headers: {
-        'Content-Type': result.data.mimeType,
-        'Content-Length': fileData.length.toString(),
-      },
-    });
+    return serveFile(c, id, result.data.originalFilename, result.data.mimeType);
   });
 
   // DELETE /api/media/:id — soft-delete
