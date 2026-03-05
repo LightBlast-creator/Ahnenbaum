@@ -3,6 +3,7 @@
   import { base } from '$app/paths';
   import { goto } from '$app/navigation';
   import * as m from '$lib/paraglide/messages';
+  import { dataVersion } from '$lib/ws-invalidation';
   import { api, type PersonWithDetails, type RelationshipEntry } from '$lib/api';
   import type { Event } from '@ahnenbaum/core';
   import { formatLifespan } from '$lib/utils/date-format';
@@ -59,6 +60,7 @@
 
   $effect(() => {
     void refreshKey;
+    void $dataVersion;
     if (personId) {
       loadAllData();
     }

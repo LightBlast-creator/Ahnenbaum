@@ -91,3 +91,12 @@ export type {
   PanelDefinition,
   SchemaExtension,
 } from './plugin-api/index.ts';
+
+// ── WebSocket types ──────────────────────────────────────────────────
+export type {
+  WsMessage,
+  PresenceUser,
+  PresenceListPayload,
+  PresenceJoinPayload,
+  PresenceLeavePayload,
+} from './ws-types.ts';

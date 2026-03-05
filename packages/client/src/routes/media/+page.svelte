@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { dataVersion } from '$lib/ws-invalidation';
   import { api } from '$lib/api';
   import { onDestroy } from 'svelte';
   import MediaGallery from '$lib/components/media/MediaGallery.svelte';
@@ -73,6 +74,7 @@
 
   $effect(() => {
     void filterType;
+    void $dataVersion;
     loadMedia();
   });
 

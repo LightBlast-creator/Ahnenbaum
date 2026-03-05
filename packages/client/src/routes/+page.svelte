@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { dataVersion } from '$lib/ws-invalidation';
   import { base } from '$app/paths';
   import {
     api,
@@ -95,6 +96,7 @@
   }
 
   $effect(() => {
+    void $dataVersion;
     loadDashboardData();
   });
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { dataVersion } from '$lib/ws-invalidation';
   import {
     api,
     toPersonWithDetails,
@@ -65,6 +66,7 @@
 
   $effect(() => {
     void refreshKey;
+    void $dataVersion;
     loadPersons();
   });
 

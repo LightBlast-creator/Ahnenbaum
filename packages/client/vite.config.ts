@@ -28,6 +28,11 @@ export default defineConfig({
     port: 5900,
     proxy: {
       '/api': 'http://localhost:3900',
+      '/health': 'http://localhost:3900',
+      '/ws': {
+        target: 'http://localhost:3900',
+        ws: true,
+      },
     },
   },
   test: {

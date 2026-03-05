@@ -21,8 +21,10 @@ import { MEDIA_DIR } from './paths.ts';
 import type { StorageAdapter } from './storage/local-storage.ts';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { PluginManager } from './plugin-runtime/plugin-manager.ts';
+import type { WsHub } from './ws/ws-hub.ts';
 import { sessionMiddleware } from './auth/session-middleware.ts';
 import { requestLogger } from './logging/request-logger.ts';
+import { createBroadcastMiddleware } from './middleware/broadcast-middleware.ts';
 
 /**
  * Create the Hono application with all routes.
@@ -36,6 +38,7 @@ export function createApp(
   db?: BetterSQLite3Database,
   storage?: StorageAdapter,
   pluginManager?: PluginManager,
+  wsHub?: WsHub,
 ): Hono {
   const app = new Hono();
 
@@ -45,6 +48,7 @@ export function createApp(
   // Middleware
   app.use('*', requestLogger);
   app.use('*', sessionMiddleware);
+  app.use('/api/*', createBroadcastMiddleware(wsHub));
 
   // ── Session endpoint ─────────────────────────────────────────────
   app.get('/api/session', (c) => {

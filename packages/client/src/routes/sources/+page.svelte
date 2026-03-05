@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import { dataVersion } from '$lib/ws-invalidation';
   import { api } from '$lib/api';
   import Toast from '$lib/components/Toast.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -88,6 +89,7 @@
   }
 
   $effect(() => {
+    void $dataVersion;
     loadSources();
   });
 

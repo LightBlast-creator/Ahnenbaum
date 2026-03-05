@@ -2,6 +2,7 @@
   import '$lib/styles/global.css';
   import { fade } from 'svelte/transition';
   import { page } from '$app/state';
+  import { onMount, onDestroy } from 'svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import Header from '$lib/components/Header.svelte';
   import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
@@ -10,6 +11,8 @@
   import ShortcutOverlay from '$lib/components/ShortcutOverlay.svelte';
   import ConnectionBanner from '$lib/components/ConnectionBanner.svelte';
   import { initPluginRegistry } from '$lib/plugin-slots/plugin-registry';
+  import { connect, disconnect } from '$lib/ws';
+  import { setupWsInvalidation } from '$lib/ws-invalidation';
 
   let { children } = $props();
   let sidebarCollapsed = $state(false);
@@ -20,6 +23,19 @@
   // Load plugin panels from server on app boot
   $effect(() => {
     initPluginRegistry();
+  });
+
+  // Initialize WebSocket connection and data invalidation
+  let cleanupInvalidation: (() => void) | undefined;
+
+  onMount(() => {
+    connect();
+    cleanupInvalidation = setupWsInvalidation();
+  });
+
+  onDestroy(() => {
+    cleanupInvalidation?.();
+    disconnect();
   });
 
   $effect(() => {

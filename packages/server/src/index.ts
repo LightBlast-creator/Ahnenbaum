@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import type { Server } from 'node:http';
 import { APP_NAME } from '@ahnenbaum/core';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { createApp } from './app.ts';
@@ -10,6 +11,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BackupScheduler } from './backup/backup-scheduler.ts';
 import { ensureDataDirs, DATA_DIR } from './paths.ts';
+import { WebSocketServer } from 'ws';
+import { WsHub } from './ws/index.ts';
 
 // ── Process safety net — log instead of crashing silently ────────────
 process.on('unhandledRejection', (reason) => {
@@ -40,7 +43,8 @@ const pluginManager = new PluginManager(db, sqlite, eventBus, routeRegistry);
 const pluginDir = process.env.PLUGIN_DIR ?? resolve(__dirname, '../../plugins');
 
 // ── Create app and start server ──────────────────────────────────────
-const app = createApp(db, undefined, pluginManager);
+const wsHub = new WsHub();
+const app = createApp(db, undefined, pluginManager, wsHub);
 const port = Number(process.env.PORT) || 3900;
 
 async function boot() {
@@ -62,10 +66,23 @@ async function boot() {
     console.log(`  Plugins:  ${pluginManager.activeCount()} active`);
   });
 
+  // ── WebSocket server ───────────────────────────────────────────────
+  wsHub.start();
+
+  const wss = new WebSocketServer({ server: server as Server, path: '/ws' });
+  wss.on('connection', (ws, req) => {
+    // Parse session userId from the cookie header
+    const userId = parseSessionUserId(req.headers.cookie);
+    wsHub.handleConnection(ws, userId);
+    ws.on('close', () => wsHub.handleDisconnect(ws));
+  });
+  console.info(`[Server] WebSocket server ready on /ws`);
+
   // ── Graceful shutdown ────────────────────────────────────────────
   async function shutdown(signal: string) {
     console.info(`[Server] ${signal} received — shutting down`);
 
+    wsHub.shutdown();
     backupScheduler.stop();
 
     // Create a safety snapshot before going down
@@ -103,3 +120,23 @@ boot().catch((err) => {
   console.error('[Server] Fatal boot error:', err);
   process.exit(1);
 });
+
+// ── Session cookie parser for WS upgrade requests ─────────────────
+
+const COOKIE_NAME = 'ahnenbaum_session';
+
+function parseSessionUserId(cookieHeader?: string): string {
+  if (!cookieHeader) return 'anonymous';
+  const match = cookieHeader
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${COOKIE_NAME}=`));
+  if (!match) return 'anonymous';
+  try {
+    const value = decodeURIComponent(match.slice(COOKIE_NAME.length + 1));
+    const session = JSON.parse(value) as { userId?: string };
+    return session.userId ?? 'anonymous';
+  } catch {
+    return 'anonymous';
+  }
+}

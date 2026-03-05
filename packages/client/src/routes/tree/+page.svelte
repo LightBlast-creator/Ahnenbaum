@@ -3,6 +3,7 @@
   import { resolveRoute } from '$app/paths';
   import { page } from '$app/state';
   import * as m from '$lib/paraglide/messages';
+  import { dataVersion } from '$lib/ws-invalidation';
   import {
     api,
     toPersonWithDetails,
@@ -93,6 +94,7 @@
 
   $effect(() => {
     void rootIdParam;
+    void $dataVersion;
     loadTree();
   });
 

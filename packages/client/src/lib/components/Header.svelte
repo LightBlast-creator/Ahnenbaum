@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
+  import PresencePill from '$lib/components/PresencePill.svelte';
 
   let { onSearchClick, onAddPerson }: { onSearchClick: () => void; onAddPerson: () => void } =
     $props();
@@ -61,6 +62,7 @@
   </div>
 
   <div class="header-right">
+    <PresencePill />
     <button
       class="header-btn theme-btn"
       onclick={toggleTheme}
