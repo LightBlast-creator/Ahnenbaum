@@ -7,11 +7,11 @@
  * All methods return Result<T> — no thrown exceptions.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
-import { persons, events } from '../db/schema/index.ts';
+import { persons, events, mediaLinks } from '../db/schema/index.ts';
 import { mustGet } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
 
@@ -122,6 +122,12 @@ export function deletePersonEvent(
     return err('NOT_FOUND', `Event with id '${eventId}' not found for person '${personId}'`);
   }
 
+  // Cascade: hard-delete media links for this event
+  db.delete(mediaLinks)
+    .where(and(eq(mediaLinks.linkedEntityType, 'event'), eq(mediaLinks.linkedEntityId, eventId)))
+    .run();
+
+  // Soft-delete the event
   db.update(events).set({ deletedAt: now(), updatedAt: now() }).where(eq(events.id, eventId)).run();
 
   return ok(undefined);

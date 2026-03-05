@@ -7,7 +7,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate, RelationshipRow } from '@ahnenbaum/core';
 import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
-import { relationships } from '../db/schema/index.ts';
+import { relationships, events, mediaLinks } from '../db/schema/index.ts';
 import { mustGet, countRows } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
 import { normalizePagination } from '../utils/pagination.ts';
@@ -179,8 +179,23 @@ export function updateRelationship(
 export function deleteRelationship(db: BetterSQLite3Database, id: string): Result<void> {
   const existing = db.select().from(relationships).where(eq(relationships.id, id)).get();
   if (!existing || existing.deletedAt) return err('NOT_FOUND', `Relationship '${id}' not found`);
+
+  const timestamp = now();
+
+  // Cascade: soft-delete events attached to this relationship
+  db.update(events)
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
+    .where(and(isNull(events.deletedAt), eq(events.relationshipId, id)))
+    .run();
+
+  // Cascade: hard-delete media links for this relationship
+  db.delete(mediaLinks)
+    .where(and(eq(mediaLinks.linkedEntityType, 'relationship'), eq(mediaLinks.linkedEntityId, id)))
+    .run();
+
+  // Soft-delete the relationship
   db.update(relationships)
-    .set({ deletedAt: now(), updatedAt: now() })
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
     .where(eq(relationships.id, id))
     .run();
   return ok(undefined);

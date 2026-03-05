@@ -2,10 +2,10 @@
  * Source & Citation service — evidence chain management.
  */
 
-import { eq, isNull, like, sql, type SQL } from 'drizzle-orm';
+import { eq, isNull, and, like, sql, inArray, type SQL } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
-import { sources, citations } from '../db/schema/index.ts';
+import { sources, citations, events } from '../db/schema/index.ts';
 import { mustGet, countRows } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
 import { normalizePagination } from '../utils/pagination.ts';
@@ -163,7 +163,36 @@ export function updateSource(
 export function deleteSource(db: BetterSQLite3Database, id: string): Result<void> {
   const existing = db.select().from(sources).where(eq(sources.id, id)).get();
   if (!existing || existing.deletedAt) return err('NOT_FOUND', `Source '${id}' not found`);
-  db.update(sources).set({ deletedAt: now(), updatedAt: now() }).where(eq(sources.id, id)).run();
+
+  const timestamp = now();
+
+  // Find all citation IDs for this source
+  const citationIds = db
+    .select({ id: citations.id })
+    .from(citations)
+    .where(and(eq(citations.sourceId, id), isNull(citations.deletedAt)))
+    .all()
+    .map((c) => c.id);
+
+  if (citationIds.length > 0) {
+    // Cascade: null out events.citationId for affected citations
+    db.update(events)
+      .set({ citationId: null, updatedAt: timestamp })
+      .where(inArray(events.citationId, citationIds as [string, ...string[]]))
+      .run();
+
+    // Cascade: soft-delete all citations
+    db.update(citations)
+      .set({ deletedAt: timestamp, updatedAt: timestamp })
+      .where(and(eq(citations.sourceId, id), isNull(citations.deletedAt)))
+      .run();
+  }
+
+  // Soft-delete the source
+  db.update(sources)
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
+    .where(eq(sources.id, id))
+    .run();
   return ok(undefined);
 }
 
@@ -227,8 +256,18 @@ export function updateCitation(
 export function deleteCitation(db: BetterSQLite3Database, id: string): Result<void> {
   const existing = db.select().from(citations).where(eq(citations.id, id)).get();
   if (!existing || existing.deletedAt) return err('NOT_FOUND', `Citation '${id}' not found`);
+
+  const timestamp = now();
+
+  // Cascade: null out events.citationId for this citation
+  db.update(events)
+    .set({ citationId: null, updatedAt: timestamp })
+    .where(eq(events.citationId, id))
+    .run();
+
+  // Soft-delete the citation
   db.update(citations)
-    .set({ deletedAt: now(), updatedAt: now() })
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
     .where(eq(citations.id, id))
     .run();
   return ok(undefined);

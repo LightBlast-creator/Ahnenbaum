@@ -8,7 +8,11 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { eq } from 'drizzle-orm';
 import * as personService from './person-service.ts';
+import * as relService from './relationship-service.ts';
+import { personNames, events, relationships, mediaLinks, media } from '../db/schema/index.ts';
+import { uuid, now } from '../db/helpers.ts';
 
 function createTestDb(): BetterSQLite3Database {
   const sqlite = new Database(':memory:');
@@ -323,5 +327,110 @@ describe('personService', () => {
     const deathDate = JSON.parse(death?.date ?? '');
     expect(deathDate.type).toBe('approximate');
     expect(deathDate.date).toBe('1975');
+  });
+
+  // ── Cascade deletion ────────────────────────────────────────────
+
+  it('cascade-deletes relationships, events, names, and media links', () => {
+    // Setup: two persons with a relationship, events, and a media link
+    const personA = personService.createPerson(db, {
+      names: [{ given: 'Hans', surname: 'Cascade' }],
+    });
+    const personB = personService.createPerson(db, {
+      names: [{ given: 'Maria', surname: 'Cascade' }],
+    });
+    if (!personA.ok || !personB.ok) throw new Error('setup failed');
+
+    // Create relationship
+    const rel = relService.createRelationship(db, {
+      personAId: personA.data.id,
+      personBId: personB.data.id,
+      type: 'marriage',
+    });
+    if (!rel.ok) throw new Error('setup failed');
+
+    // Create event for personA
+    const evt = personService.addPersonEvent(db, personA.data.id, {
+      type: 'birth',
+      date: { type: 'exact', date: '1920-01-01' },
+    });
+    if (!evt.ok) throw new Error('setup failed');
+
+    // Create event for personB (should NOT be affected)
+    const evtB = personService.addPersonEvent(db, personB.data.id, {
+      type: 'birth',
+      date: { type: 'exact', date: '1925-01-01' },
+    });
+    if (!evtB.ok) throw new Error('setup failed');
+
+    // Create a media + media link for personA
+    const timestamp = now();
+    const mediaId = uuid();
+    db.insert(media)
+      .values({
+        id: mediaId,
+        type: 'image' as const,
+        filename: 'test.jpg',
+        originalFilename: 'test.jpg',
+        mimeType: 'image/jpeg',
+        size: 1024,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .run();
+    db.insert(mediaLinks)
+      .values({
+        id: uuid(),
+        mediaId,
+        linkedEntityType: 'person',
+        linkedEntityId: personA.data.id,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .run();
+
+    // Verify setup
+    const namesBefore = db
+      .select()
+      .from(personNames)
+      .where(eq(personNames.personId, personA.data.id))
+      .all();
+    expect(namesBefore).toHaveLength(1);
+
+    // Act: delete personA
+    const deleteResult = personService.deletePerson(db, personA.data.id);
+    expect(deleteResult.ok).toBe(true);
+
+    // Assert: relationship is soft-deleted
+    const relAfter = db.select().from(relationships).where(eq(relationships.id, rel.data.id)).get();
+    expect(relAfter?.deletedAt).not.toBeNull();
+
+    // Assert: personA's event is soft-deleted
+    const evtAfter = db.select().from(events).where(eq(events.id, evt.data.id)).get();
+    expect(evtAfter?.deletedAt).not.toBeNull();
+
+    // Assert: personA's names are hard-deleted
+    const namesAfter = db
+      .select()
+      .from(personNames)
+      .where(eq(personNames.personId, personA.data.id))
+      .all();
+    expect(namesAfter).toHaveLength(0);
+
+    // Assert: personA's media links are hard-deleted
+    const linksAfter = db
+      .select()
+      .from(mediaLinks)
+      .where(eq(mediaLinks.linkedEntityId, personA.data.id))
+      .all();
+    expect(linksAfter).toHaveLength(0);
+
+    // Assert: personB is unaffected
+    const findB = personService.getPersonById(db, personB.data.id);
+    expect(findB.ok).toBe(true);
+
+    // Assert: personB's event is unaffected
+    const evtBAfter = db.select().from(events).where(eq(events.id, evtB.data.id)).get();
+    expect(evtBAfter?.deletedAt).toBeNull();
   });
 });

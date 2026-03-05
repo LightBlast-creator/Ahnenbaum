@@ -7,6 +7,9 @@ import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as sourceService from './source-service.ts';
+import * as personService from './person-service.ts';
+import { eq } from 'drizzle-orm';
+import { events, citations } from '../db/schema/index.ts';
 
 function createTestDb(): BetterSQLite3Database {
   const sqlite = new Database(':memory:');
@@ -134,5 +137,43 @@ describe('sourceService', () => {
 
     const find = sourceService.getCitationById(db, citation.data.id);
     expect(find.ok).toBe(false);
+  });
+
+  // ── Cascade deletion ────────────────────────────────────────────
+
+  it('cascade-deletes citations and nulls event.citationId when deleting a source', () => {
+    // Setup: source → citation → event
+    const source = sourceService.createSource(db, { title: 'Cascade Source' });
+    if (!source.ok) throw new Error('setup');
+
+    const citation = sourceService.createCitation(db, {
+      sourceId: source.data.id,
+      detail: 'Page 42',
+    });
+    if (!citation.ok) throw new Error('setup');
+
+    // Create a person + event that references this citation
+    const person = personService.createPerson(db, {
+      names: [{ given: 'Cite', surname: 'Test' }],
+    });
+    if (!person.ok) throw new Error('setup');
+
+    const evt = personService.addPersonEvent(db, person.data.id, {
+      type: 'birth',
+      citationId: citation.data.id,
+    });
+    if (!evt.ok) throw new Error('setup');
+
+    // Act: delete the source
+    const del = sourceService.deleteSource(db, source.data.id);
+    expect(del.ok).toBe(true);
+
+    // Assert: citation is soft-deleted
+    const citAfter = db.select().from(citations).where(eq(citations.id, citation.data.id)).get();
+    expect(citAfter?.deletedAt).not.toBeNull();
+
+    // Assert: event.citationId is nulled out
+    const evtAfter = db.select().from(events).where(eq(events.id, evt.data.id)).get();
+    expect(evtAfter?.citationId).toBeNull();
   });
 });

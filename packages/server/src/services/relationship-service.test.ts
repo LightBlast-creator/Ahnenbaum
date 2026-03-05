@@ -8,6 +8,9 @@ import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as relService from './relationship-service.ts';
 import * as personService from './person-service.ts';
+import { eq } from 'drizzle-orm';
+import { events } from '../db/schema/index.ts';
+import { uuid, now } from '../db/helpers.ts';
 
 function createTestDb(): BetterSQLite3Database {
   const sqlite = new Database(':memory:');
@@ -287,5 +290,45 @@ describe('relationshipService', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data).toHaveLength(0);
+  });
+
+  // ── Cascade deletion ────────────────────────────────────────────
+
+  it('cascade-deletes events when deleting a relationship', () => {
+    const a = createTestPerson(db, 'CascA', 'Rel');
+    const b = createTestPerson(db, 'CascB', 'Rel');
+
+    const rel = relService.createRelationship(db, {
+      personAId: a.id,
+      personBId: b.id,
+      type: 'marriage',
+    });
+    if (!rel.ok) throw new Error('setup');
+
+    // Manually create a marriage event linked to this relationship
+    const evtId = uuid();
+    db.insert(events)
+      .values({
+        id: evtId,
+        type: 'marriage' as const,
+        personId: null,
+        relationshipId: rel.data.id,
+        placeId: null,
+        description: null,
+        notes: null,
+        date: null,
+        citationId: null,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+
+    // Act: delete the relationship
+    const del = relService.deleteRelationship(db, rel.data.id);
+    expect(del.ok).toBe(true);
+
+    // Assert: relationship event is soft-deleted
+    const evtAfter = db.select().from(events).where(eq(events.id, evtId)).get();
+    expect(evtAfter?.deletedAt).not.toBeNull();
   });
 });

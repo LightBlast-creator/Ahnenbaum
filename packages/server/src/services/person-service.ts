@@ -8,11 +8,11 @@
  * Database operations use Drizzle ORM against the schema.
  */
 
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate } from '@ahnenbaum/core';
-import { persons, personNames, events, mediaLinks } from '../db/schema/index.ts';
+import { persons, personNames, events, mediaLinks, relationships } from '../db/schema/index.ts';
 import { enrichPersonRows } from './person-enrichment.ts';
 import { mustGet, countRows } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
@@ -232,7 +232,38 @@ export function deletePerson(db: BetterSQLite3Database, id: string): Result<void
     return err('NOT_FOUND', `Person with id '${id}' not found`);
   }
 
-  db.update(persons).set({ deletedAt: now(), updatedAt: now() }).where(eq(persons.id, id)).run();
+  const timestamp = now();
+
+  // Cascade: soft-delete relationships involving this person
+  db.update(relationships)
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
+    .where(
+      and(
+        isNull(relationships.deletedAt),
+        or(eq(relationships.personAId, id), eq(relationships.personBId, id)),
+      ),
+    )
+    .run();
+
+  // Cascade: soft-delete events belonging to this person
+  db.update(events)
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
+    .where(and(isNull(events.deletedAt), eq(events.personId, id)))
+    .run();
+
+  // Cascade: hard-delete person names (no deletedAt column)
+  db.delete(personNames).where(eq(personNames.personId, id)).run();
+
+  // Cascade: hard-delete media links for this person
+  db.delete(mediaLinks)
+    .where(and(eq(mediaLinks.linkedEntityType, 'person'), eq(mediaLinks.linkedEntityId, id)))
+    .run();
+
+  // Soft-delete the person
+  db.update(persons)
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
+    .where(eq(persons.id, id))
+    .run();
 
   return ok(undefined);
 }

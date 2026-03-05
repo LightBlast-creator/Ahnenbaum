@@ -5,7 +5,7 @@
 import { eq, isNull, like, sql, type SQL } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
-import { places } from '../db/schema/index.ts';
+import { places, events, relationships, media } from '../db/schema/index.ts';
 import { mustGet, countRows } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
 import { normalizePagination } from '../utils/pagination.ts';
@@ -151,7 +151,34 @@ export function deletePlace(db: BetterSQLite3Database, id: string): Result<void>
     return err('NOT_FOUND', `Place with id '${id}' not found`);
   }
 
-  db.update(places).set({ deletedAt: now(), updatedAt: now() }).where(eq(places.id, id)).run();
+  const timestamp = now();
+
+  // Cascade: null out placeId in events referencing this place
+  db.update(events)
+    .set({ placeId: null, updatedAt: timestamp })
+    .where(eq(events.placeId, id))
+    .run();
+
+  // Cascade: null out placeId in relationships referencing this place
+  db.update(relationships)
+    .set({ placeId: null, updatedAt: timestamp })
+    .where(eq(relationships.placeId, id))
+    .run();
+
+  // Cascade: null out placeId in media referencing this place
+  db.update(media).set({ placeId: null, updatedAt: timestamp }).where(eq(media.placeId, id)).run();
+
+  // Cascade: detach child places (don't delete them)
+  db.update(places)
+    .set({ parentId: null, updatedAt: timestamp })
+    .where(eq(places.parentId, id))
+    .run();
+
+  // Soft-delete the place
+  db.update(places)
+    .set({ deletedAt: timestamp, updatedAt: timestamp })
+    .where(eq(places.id, id))
+    .run();
 
   return ok(undefined);
 }

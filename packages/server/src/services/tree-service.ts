@@ -181,14 +181,23 @@ export function getTreeStats(db: BetterSQLite3Database): Result<TreeStats> {
   const personsWithoutBirthDate = personCount - new Set(personsWithBirth).size;
 
   // Orphan persons (no relationships at all)
+  // Only count person IDs that are actually non-deleted persons
+  const activePersonIds = new Set(
+    db
+      .select({ id: persons.id })
+      .from(persons)
+      .where(isNull(persons.deletedAt))
+      .all()
+      .map((p) => p.id),
+  );
   const personsWithRels = new Set<string>();
   db.select({ a: relationships.personAId, b: relationships.personBId })
     .from(relationships)
     .where(isNull(relationships.deletedAt))
     .all()
     .forEach((r) => {
-      personsWithRels.add(r.a);
-      personsWithRels.add(r.b);
+      if (activePersonIds.has(r.a)) personsWithRels.add(r.a);
+      if (activePersonIds.has(r.b)) personsWithRels.add(r.b);
     });
   const orphanPersons = personCount - personsWithRels.size;
 
@@ -198,7 +207,8 @@ export function getTreeStats(db: BetterSQLite3Database): Result<TreeStats> {
     .from(mediaLinks)
     .where(and(eq(mediaLinks.linkedEntityType, 'person'), eq(mediaLinks.isPrimary, true)))
     .all()
-    .map((r) => r.eid);
+    .map((r) => r.eid)
+    .filter((eid) => activePersonIds.has(eid));
   const personsWithoutPhoto = personCount - new Set(personsWithPhoto).size;
 
   // ── Family statistics ──

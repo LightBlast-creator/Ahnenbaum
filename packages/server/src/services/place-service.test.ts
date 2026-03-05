@@ -7,6 +7,8 @@ import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as placeService from './place-service.ts';
+import { eq } from 'drizzle-orm';
+import { places } from '../db/schema/index.ts';
 
 function createTestDb(): BetterSQLite3Database {
   const sqlite = new Database(':memory:');
@@ -118,5 +120,27 @@ describe('placeService', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.total).toBe(2);
+  });
+
+  // ── Cascade deletion ────────────────────────────────────────────
+
+  it('detaches child places when deleting a parent place', () => {
+    const germany = placeService.createPlace(db, { name: 'Germany' });
+    if (!germany.ok) throw new Error('setup');
+
+    const bavaria = placeService.createPlace(db, {
+      name: 'Bavaria',
+      parentId: germany.data.id,
+    });
+    if (!bavaria.ok) throw new Error('setup');
+
+    // Act: delete Germany
+    const del = placeService.deletePlace(db, germany.data.id);
+    expect(del.ok).toBe(true);
+
+    // Assert: Bavaria's parentId is now null (detached, not deleted)
+    const bavariaAfter = db.select().from(places).where(eq(places.id, bavaria.data.id)).get();
+    expect(bavariaAfter?.parentId).toBeNull();
+    expect(bavariaAfter?.deletedAt).toBeNull(); // Bavaria is still alive
   });
 });
