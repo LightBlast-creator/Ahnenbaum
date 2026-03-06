@@ -16,6 +16,7 @@ export default tseslint.config(
       '**/drizzle/**',
       '**/coverage/**',
       '**/paraglide/**',
+      '.agent/**',
     ],
   },
 

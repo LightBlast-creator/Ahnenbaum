@@ -39,6 +39,7 @@ coverage/
 
 # Misc
 *.tgz
+.eslintcache
 
 # Code review reports
 REVIEW_CLEAN.md
