@@ -8,12 +8,18 @@
     onSave,
     onCancel,
   }: {
-    onSave: (data: { type: EventType; date?: GenealogyDate; description?: string }) => void;
+    onSave: (data: {
+      type: EventType;
+      date?: GenealogyDate;
+      endDate?: GenealogyDate;
+      description?: string;
+    }) => void;
     onCancel: () => void;
   } = $props();
 
   let type: EventType = $state('custom');
   let date: GenealogyDate | undefined = $state(undefined);
+  let endDate: GenealogyDate | undefined = $state(undefined);
   let description = $state('');
 
   const eventTypes = EVENT_TYPES;
@@ -22,6 +28,7 @@
     onSave({
       type,
       date,
+      endDate,
       description: description.trim() || undefined,
     });
   }
@@ -48,6 +55,9 @@
     </div>
     <div class="form-field">
       <DateInput bind:value={date} label="Date" />
+    </div>
+    <div class="form-field">
+      <DateInput bind:value={endDate} label="End Date" />
     </div>
   </div>
   <div class="form-field">
@@ -81,7 +91,7 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: var(--space-3);
   }
 

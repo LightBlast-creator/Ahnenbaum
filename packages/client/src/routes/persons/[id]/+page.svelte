@@ -169,6 +169,7 @@
   async function handleAddEvent(data: {
     type: EventType;
     date?: GenealogyDate;
+    endDate?: GenealogyDate;
     description?: string;
   }) {
     if (!person) return;
@@ -186,7 +187,7 @@
 
   async function handleUpdateEvent(
     eventId: string,
-    data: { type?: EventType; date?: GenealogyDate; description?: string },
+    data: { type?: EventType; date?: GenealogyDate; endDate?: GenealogyDate; description?: string },
   ) {
     if (!person) return;
     try {
@@ -214,6 +215,7 @@
       ? {
           type: eventToDelete.type,
           date: eventToDelete.date,
+          endDate: eventToDelete.endDate,
           description: eventToDelete.description,
         }
       : null;

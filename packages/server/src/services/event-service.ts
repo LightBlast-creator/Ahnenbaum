@@ -20,6 +20,7 @@ import { now, uuid } from '../db/helpers.ts';
 export interface CreateEventInput {
   type: string;
   date?: GenealogyDate;
+  endDate?: GenealogyDate;
   placeId?: string;
   description?: string;
   notes?: string;
@@ -29,6 +30,7 @@ export interface CreateEventInput {
 export interface UpdateEventInput {
   type?: string;
   date?: GenealogyDate;
+  endDate?: GenealogyDate;
   placeId?: string;
   description?: string;
   notes?: string;
@@ -39,6 +41,7 @@ export interface EventRow {
   id: string;
   type: string;
   date: string | null;
+  endDate: string | null;
   placeId: string | null;
   personId: string | null;
   relationshipId: string | null;
@@ -71,6 +74,7 @@ export function addPersonEvent(
       id: eventId,
       type: eventType as typeof events.$inferInsert.type,
       date: input.date ? JSON.stringify(input.date) : null,
+      endDate: input.endDate ? JSON.stringify(input.endDate) : null,
       placeId: input.placeId ?? null,
       personId,
       relationshipId: null,
@@ -100,6 +104,7 @@ export function updatePersonEvent(
     .set({
       ...(input.type !== undefined && { type: input.type as typeof events.$inferInsert.type }),
       ...(input.date !== undefined && { date: JSON.stringify(input.date) }),
+      ...(input.endDate !== undefined && { endDate: JSON.stringify(input.endDate) }),
       ...(input.placeId !== undefined && { placeId: input.placeId }),
       ...(input.description !== undefined && { description: input.description }),
       ...(input.notes !== undefined && { notes: input.notes }),

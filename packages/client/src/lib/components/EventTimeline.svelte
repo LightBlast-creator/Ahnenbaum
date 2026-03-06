@@ -50,6 +50,7 @@
         {@const isLeft = i % 2 === 0}
         {@const color = EVENT_TYPE_COLOR[event.type] ?? 'var(--color-text-muted)'}
         {@const isExpanded = expandedIds.has(event.id)}
+        {@const isSpan = !!(event.date && event.endDate)}
         <div
           class="timeline-entry"
           class:left={isLeft}
@@ -58,11 +59,23 @@
         >
           <!-- Date label on the axis -->
           <div class="timeline-year" class:left={isLeft} class:right={!isLeft}>
-            {extractYear(event.date) || ''}
+            {#if isSpan}
+              {extractYear(event.date)}–{extractYear(event.endDate)}
+            {:else}
+              {extractYear(event.date) || ''}
+            {/if}
           </div>
 
-          <!-- Dot on the line -->
-          <div class="timeline-dot" style="background: {color}"></div>
+          <!-- Dot or span bar on the line -->
+          {#if isSpan}
+            <div
+              class="timeline-span"
+              style="background: {color}"
+              title="{formatDate(event.date)} – {formatDate(event.endDate)}"
+            ></div>
+          {:else}
+            <div class="timeline-dot" style="background: {color}"></div>
+          {/if}
 
           <!-- Event card -->
 
@@ -85,7 +98,10 @@
               >
               <span class="card-type">{EVENT_TYPE_NAMES[event.type]?.() ?? event.type}</span>
               {#if event.date}
-                <span class="card-date">{formatDate(event.date)}</span>
+                <span class="card-date">
+                  {formatDate(event.date)}{#if event.endDate}
+                    – {formatDate(event.endDate)}{/if}
+                </span>
               {/if}
             </div>
 
@@ -281,6 +297,26 @@
     transform: translateX(-50%) scale(1.3);
   }
 
+  /* ── Span bar on the line (for events with endDate) ── */
+  .timeline-span {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    width: 10px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    transform: translateX(-50%);
+    z-index: 1;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast);
+    opacity: 0.85;
+  }
+
+  .timeline-entry:hover .timeline-span {
+    transform: translateX(-50%) scale(1.15);
+    opacity: 1;
+  }
+
   /* ── Event card ── */
   .timeline-card {
     width: calc(50% - 28px);
@@ -422,6 +458,10 @@
     }
 
     .timeline-dot {
+      left: 20px;
+    }
+
+    .timeline-span {
       left: 20px;
     }
 

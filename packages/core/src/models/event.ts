@@ -35,6 +35,8 @@ export interface Event {
   readonly id: string;
   readonly type: EventType;
   readonly date?: GenealogyDate;
+  /** Optional end date for span events (residence, occupation, etc.). */
+  readonly endDate?: GenealogyDate;
   readonly placeId?: string;
   readonly personId?: string;
   readonly relationshipId?: string;

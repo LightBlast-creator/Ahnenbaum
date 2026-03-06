@@ -14,7 +14,12 @@
     events: (Event & { place?: Place })[];
     onUpdate?: (
       eventId: string,
-      data: { type?: EventType; date?: GenealogyDate; description?: string },
+      data: {
+        type?: EventType;
+        date?: GenealogyDate;
+        endDate?: GenealogyDate;
+        description?: string;
+      },
     ) => void;
     onDelete?: (eventId: string) => void;
   } = $props();
@@ -25,12 +30,14 @@
   let editingEventId = $state<string | null>(null);
   let editType = $state<EventType>('custom');
   let editDateText = $state('');
+  let editEndDateText = $state('');
   let editDescription = $state('');
 
   function startEdit(event: Event) {
     editingEventId = event.id;
     editType = event.type;
     editDateText = event.date ? formatDate(event.date) : '';
+    editEndDateText = event.endDate ? formatDate(event.endDate) : '';
     editDescription = event.description ?? '';
   }
 
@@ -42,10 +49,12 @@
     if (!editingEventId || !onUpdate) return;
 
     const parsedDate = editDateText.trim() ? parseDate(editDateText.trim()) : undefined;
+    const parsedEndDate = editEndDateText.trim() ? parseDate(editEndDateText.trim()) : undefined;
 
     onUpdate(editingEventId, {
       type: editType,
       date: parsedDate ?? undefined,
+      endDate: parsedEndDate ?? undefined,
       description: editDescription.trim() || undefined,
     });
 
@@ -87,6 +96,12 @@
                   bind:value={editDateText}
                   placeholder="1985-03-15, ~1890…"
                 />
+                <input
+                  class="edit-input"
+                  type="text"
+                  bind:value={editEndDateText}
+                  placeholder="End date (optional)"
+                />
               </div>
               <input
                 class="edit-input edit-description"
@@ -121,6 +136,9 @@
                 <span class="event-type">{EVENT_TYPE_NAMES[event.type]?.() ?? event.type}</span>
                 {#if event.date}
                   <span class="event-date">{formatDate(event.date)}</span>
+                {/if}
+                {#if event.endDate}
+                  <span class="event-date">– {formatDate(event.endDate)}</span>
                 {/if}
               </div>
               {#if event.place || event.description}
@@ -289,7 +307,7 @@
 
   .edit-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: var(--space-2);
   }
 

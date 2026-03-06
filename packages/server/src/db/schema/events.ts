@@ -34,6 +34,8 @@ export const events = sqliteTable(
     }).notNull(),
     /** JSON-serialized GenealogyDate. */
     date: text('date'),
+    /** JSON-serialized GenealogyDate — optional end date for span events. */
+    endDate: text('end_date'),
     placeId: text('place_id').references(() => places.id),
     personId: text('person_id').references(() => persons.id),
     relationshipId: text('relationship_id').references(() => relationships.id),

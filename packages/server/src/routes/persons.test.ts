@@ -136,4 +136,72 @@ describe('person routes', () => {
     expect(body.ok).toBe(true);
     expect(body.data.type).toBe('birth');
   });
+
+  it('POST /:id/events with endDate persists both dates', async () => {
+    const createRes = await app.request('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        names: [{ given: 'Span', surname: 'Test' }],
+      }),
+    });
+    const { data: person } = await createRes.json();
+
+    const res = await app.request(`/${person.id}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'residence',
+        date: { type: 'exact', date: '1920' },
+        endDate: { type: 'exact', date: '1970' },
+        description: 'Munich',
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.data.type).toBe('residence');
+    expect(body.data.date).not.toBeNull();
+    expect(body.data.endDate).not.toBeNull();
+
+    // Verify JSON round-trip
+    const dateObj = JSON.parse(body.data.date);
+    const endDateObj = JSON.parse(body.data.endDate);
+    expect(dateObj).toEqual({ type: 'exact', date: '1920' });
+    expect(endDateObj).toEqual({ type: 'exact', date: '1970' });
+  });
+
+  it('PATCH /:id/events/:eventId updates endDate', async () => {
+    const createRes = await app.request('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        names: [{ given: 'Patch', surname: 'Test' }],
+      }),
+    });
+    const { data: person } = await createRes.json();
+
+    // Create event without endDate
+    const eventRes = await app.request(`/${person.id}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'occupation', date: { type: 'exact', date: '1950' } }),
+    });
+    const { data: event } = await eventRes.json();
+    expect(event.endDate).toBeNull();
+
+    // Add endDate via PATCH
+    const patchRes = await app.request(`/${person.id}/events/${event.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endDate: { type: 'exact', date: '1985' } }),
+    });
+
+    expect(patchRes.status).toBe(200);
+    const patchBody = await patchRes.json();
+    expect(patchBody.ok).toBe(true);
+    expect(patchBody.data.endDate).not.toBeNull();
+    expect(JSON.parse(patchBody.data.endDate)).toEqual({ type: 'exact', date: '1985' });
+  });
 });

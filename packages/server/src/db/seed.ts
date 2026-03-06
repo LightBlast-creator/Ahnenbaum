@@ -105,6 +105,7 @@ function insertEvent(
     relationshipId?: string;
     placeId?: string;
     date?: string;
+    endDate?: string;
     description?: string;
     citationId?: string;
   },
@@ -118,6 +119,7 @@ function insertEvent(
       relationshipId: opts.relationshipId ?? null,
       placeId: opts.placeId ?? null,
       date: opts.date ?? null,
+      endDate: opts.endDate ?? null,
       description: opts.description ?? null,
       citationId: opts.citationId ?? null,
       createdAt: ts,
@@ -471,7 +473,8 @@ export async function seed(db: BetterSQLite3Database): Promise<SeedResult> {
     type: 'residence',
     personId: johann,
     placeId: munich,
-    date: JSON.stringify({ type: 'range', from: '1920', to: '1970' }),
+    date: JSON.stringify({ type: 'exact', date: '1920' }),
+    endDate: JSON.stringify({ type: 'exact', date: '1970' }),
     citationId: cite3,
   });
   insertEvent(db, {
@@ -511,12 +514,15 @@ export async function seed(db: BetterSQLite3Database): Promise<SeedResult> {
     personId: thomas,
     description: 'Studium der Medizin, LMU München',
     placeId: munich,
+    date: JSON.stringify({ type: 'exact', date: '1946' }),
+    endDate: JSON.stringify({ type: 'exact', date: '1952' }),
   });
   insertEvent(db, {
     type: 'military_service',
     personId: thomas,
     description: 'Wehrmacht 1944-1945',
-    date: JSON.stringify({ type: 'range', from: '1944', to: '1945' }),
+    date: JSON.stringify({ type: 'exact', date: '1944' }),
+    endDate: JSON.stringify({ type: 'exact', date: '1945' }),
   });
   console.log('  ✓ 22 events\n');
 
