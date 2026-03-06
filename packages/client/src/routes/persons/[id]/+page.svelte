@@ -490,24 +490,6 @@
     }
   }
 
-  .btn-add-outline {
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-4);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    transition: all var(--transition-fast);
-    width: 100%;
-    text-align: center;
-  }
-
-  .btn-add-outline:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-    background: var(--color-primary-light);
-  }
-
   .not-found {
     text-align: center;
     padding: var(--space-16) 0;

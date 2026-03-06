@@ -643,19 +643,6 @@
     letter-spacing: 0.05em;
   }
 
-  .btn-sm {
-    font-size: var(--font-size-xs);
-    padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-secondary);
-  }
-
-  .btn-sm:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
   .citation-form {
     background: var(--color-surface);
     padding: var(--space-3);
