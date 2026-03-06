@@ -5,7 +5,7 @@
   import * as m from '$lib/paraglide/messages';
   import { dataVersion } from '$lib/ws-invalidation';
   import { api, type PersonWithDetails, type RelationshipEntry } from '$lib/api';
-  import type { Event } from '@ahnenbaum/core';
+  import type { Event, EventType, GenealogyDate, Sex } from '@ahnenbaum/core';
   import { formatLifespan } from '$lib/utils/date-format';
   import {
     loadPerson as fetchPerson,
@@ -16,6 +16,7 @@
   } from '$lib/person-data';
   import PersonHeader from '$lib/components/PersonHeader.svelte';
   import EventList from '$lib/components/EventList.svelte';
+  import EventTimeline from '$lib/components/EventTimeline.svelte';
   import EventForm from '$lib/components/EventForm.svelte';
   import RelationshipList from '$lib/components/RelationshipList.svelte';
   import AddRelationshipModal from '$lib/components/AddRelationshipModal.svelte';
@@ -23,9 +24,23 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import PluginSlot from '$lib/plugin-slots/PluginSlot.svelte';
-  import type { Sex, EventType, GenealogyDate } from '@ahnenbaum/core';
 
   const personId = $derived(page.params.id ?? '');
+
+  // View preferences
+  let eventsView = $state<'list' | 'timeline'>('list');
+
+  // SSR-safe localStorage init
+  $effect(() => {
+    const saved = localStorage.getItem('ahnenbaum-events-view');
+    if (saved === 'timeline') {
+      eventsView = 'timeline';
+    }
+  });
+
+  $effect(() => {
+    localStorage.setItem('ahnenbaum-events-view', eventsView);
+  });
 
   // Use counter to force reactivity on mutations
   let refreshKey = $state(0);
@@ -169,10 +184,20 @@
     }
   }
 
-  function handleEditEvent(event: Event) {
-    // For now, we delete the old and let the user re-add via form.
-    // A full inline edit would require more UI — this gives immediate functionality.
-    handleDeleteEventConfirm(event.id);
+  async function handleUpdateEvent(
+    eventId: string,
+    data: { type?: EventType; date?: GenealogyDate; description?: string },
+  ) {
+    if (!person) return;
+    try {
+      await api.patch(`persons/${person.id}/events/${eventId}`, data);
+      refreshKey++;
+      toastMessage = m.toast_event_updated();
+      toastType = 'success';
+    } catch {
+      toastMessage = m.toast_error();
+      toastType = 'error';
+    }
   }
 
   function handleDeleteEventConfirm(eventId: string) {
@@ -344,11 +369,73 @@
 
     <div class="person-tab-content">
       {#if activeTab === 'events'}
-        <EventList
-          events={personEvents}
-          onEdit={handleEditEvent}
-          onDelete={handleDeleteEventConfirm}
-        />
+        <div class="view-controls">
+          <div class="view-toggle">
+            <button
+              class="view-toggle-btn"
+              class:active={eventsView === 'list'}
+              onclick={() => (eventsView = 'list')}
+              aria-label={m.events_view_list()}
+              title={m.events_view_list()}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"
+                ></line><line x1="8" y1="18" x2="21" y2="18"></line><line
+                  x1="3"
+                  y1="6"
+                  x2="3.01"
+                  y2="6"
+                ></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line
+                  x1="3"
+                  y1="18"
+                  x2="3.01"
+                  y2="18"
+                ></line></svg
+              >
+            </button>
+            <button
+              class="view-toggle-btn"
+              class:active={eventsView === 'timeline'}
+              onclick={() => (eventsView = 'timeline')}
+              aria-label={m.events_view_timeline()}
+              title={m.events_view_timeline()}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"
+                ></line><line x1="6" y1="20" x2="6" y2="16"></line></svg
+              >
+            </button>
+          </div>
+        </div>
+
+        {#if eventsView === 'list'}
+          <EventList
+            events={personEvents}
+            onUpdate={handleUpdateEvent}
+            onDelete={handleDeleteEventConfirm}
+          />
+        {:else}
+          <EventTimeline events={personEvents} onDelete={handleDeleteEventConfirm} />
+        {/if}
+
         {#if showEventForm}
           <EventForm onSave={handleAddEvent} onCancel={() => (showEventForm = false)} />
         {:else}
@@ -453,6 +540,41 @@
 
   .person-tabs::-webkit-scrollbar {
     display: none; /* Hide scrollbar in Chrome/Safari */
+  }
+
+  .view-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--space-4);
+  }
+
+  .view-toggle {
+    display: inline-flex;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 2px;
+  }
+
+  .view-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2) var(--space-3);
+    border-radius: calc(var(--radius-md) - 2px);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .view-toggle-btn:hover {
+    color: var(--color-text);
+  }
+
+  .view-toggle-btn.active {
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-sm);
   }
 
   .tab-btn {

@@ -1,105 +1,166 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
   import { formatDate } from '$lib/utils/date-format';
-  import type { Event, Place } from '@ahnenbaum/core';
+  import { parseDate } from '$lib/utils/date-parser';
+  import { sortEventsChronologically } from '$lib/utils/event-sort';
+  import { EVENT_TYPE_EMOJI, EVENT_TYPE_NAMES, EVENT_TYPES } from '$lib/utils/event-type-config';
+  import type { Event, Place, EventType, GenealogyDate } from '@ahnenbaum/core';
 
   let {
     events,
-    onEdit,
+    onUpdate,
     onDelete,
   }: {
     events: (Event & { place?: Place })[];
-    onEdit?: (event: Event) => void;
+    onUpdate?: (
+      eventId: string,
+      data: { type?: EventType; date?: GenealogyDate; description?: string },
+    ) => void;
     onDelete?: (eventId: string) => void;
   } = $props();
 
-  const eventTypeLabels: Record<string, string> = {
-    birth: '🎂',
-    death: '✝',
-    marriage: '💍',
-    baptism: '💧',
-    burial: '⚰️',
-    immigration: '🚢',
-    emigration: '✈️',
-    occupation: '💼',
-    residence: '🏠',
-    military_service: '🎖️',
-    education: '🎓',
-    census: '📋',
-    custom: '📝',
-  };
+  const sortedEvents = $derived(sortEventsChronologically(events));
 
-  const eventTypeNames: Record<string, () => string> = {
-    birth: () => m.event_type_birth(),
-    death: () => m.event_type_death(),
-    marriage: () => m.event_type_marriage(),
-    baptism: () => m.event_type_baptism(),
-    burial: () => m.event_type_burial(),
-    immigration: () => m.event_type_immigration(),
-    emigration: () => m.event_type_emigration(),
-    occupation: () => m.event_type_occupation(),
-    residence: () => m.event_type_residence(),
-    military_service: () => m.event_type_military_service(),
-    education: () => m.event_type_education(),
-    census: () => m.event_type_census(),
-    custom: () => m.event_type_custom(),
-  };
+  // ── Inline editing state ──
+  let editingEventId = $state<string | null>(null);
+  let editType = $state<EventType>('custom');
+  let editDateText = $state('');
+  let editDescription = $state('');
+
+  function startEdit(event: Event) {
+    editingEventId = event.id;
+    editType = event.type;
+    editDateText = event.date ? formatDate(event.date) : '';
+    editDescription = event.description ?? '';
+  }
+
+  function cancelEdit() {
+    editingEventId = null;
+  }
+
+  function saveEdit() {
+    if (!editingEventId || !onUpdate) return;
+
+    const parsedDate = editDateText.trim() ? parseDate(editDateText.trim()) : undefined;
+
+    onUpdate(editingEventId, {
+      type: editType,
+      date: parsedDate ?? undefined,
+      description: editDescription.trim() || undefined,
+    });
+
+    editingEventId = null;
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelEdit();
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      saveEdit();
+    }
+  }
 </script>
 
 <section class="event-list">
   <h3>{m.events_title()}</h3>
 
-  {#if events.length === 0}
+  {#if sortedEvents.length === 0}
     <p class="empty">{m.events_empty()}</p>
   {:else}
     <ul class="events">
-      {#each events as event (event.id)}
-        <li class="event-item">
-          <span class="event-icon" aria-hidden="true">{eventTypeLabels[event.type] ?? '📝'}</span>
-          <div class="event-content">
-            <div class="event-header">
-              <span class="event-type">{eventTypeNames[event.type]?.() ?? event.type}</span>
-              {#if event.date}
-                <span class="event-date">{formatDate(event.date)}</span>
+      {#each sortedEvents as event (event.id)}
+        <li class="event-item" class:editing={editingEventId === event.id}>
+          {#if editingEventId === event.id}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="inline-edit" onkeydown={handleKeydown}>
+              <div class="edit-row">
+                <select class="edit-select" bind:value={editType}>
+                  {#each EVENT_TYPES as et (et.value)}
+                    <option value={et.value}>{et.label}</option>
+                  {/each}
+                </select>
+                <input
+                  class="edit-input"
+                  type="text"
+                  bind:value={editDateText}
+                  placeholder="1985-03-15, ~1890…"
+                />
+              </div>
+              <input
+                class="edit-input edit-description"
+                type="text"
+                bind:value={editDescription}
+                placeholder="Description (optional)"
+              />
+              <div class="edit-actions">
+                <button
+                  class="edit-btn edit-btn-save"
+                  onclick={saveEdit}
+                  aria-label={m.person_save()}
+                  title={m.person_save()}
+                >
+                  ✓
+                </button>
+                <button
+                  class="edit-btn edit-btn-cancel"
+                  onclick={cancelEdit}
+                  aria-label={m.person_cancel()}
+                  title={m.person_cancel()}
+                >
+                  ✗
+                </button>
+              </div>
+            </div>
+          {:else}
+            <span class="event-icon" aria-hidden="true">{EVENT_TYPE_EMOJI[event.type] ?? '📝'}</span
+            >
+            <div class="event-content">
+              <div class="event-header">
+                <span class="event-type">{EVENT_TYPE_NAMES[event.type]?.() ?? event.type}</span>
+                {#if event.date}
+                  <span class="event-date">{formatDate(event.date)}</span>
+                {/if}
+              </div>
+              {#if event.place || event.description}
+                <div class="event-details">
+                  {#if event.place}
+                    <span class="event-place">📍 {event.place.name}</span>
+                  {/if}
+                  {#if event.description}
+                    <span class="event-description">{event.description}</span>
+                  {/if}
+                </div>
+              {/if}
+              {#if event.notes}
+                <p class="event-notes">{event.notes}</p>
               {/if}
             </div>
-            {#if event.place || event.description}
-              <div class="event-details">
-                {#if event.place}
-                  <span class="event-place">📍 {event.place.name}</span>
+            {#if onUpdate || onDelete}
+              <div class="event-actions">
+                {#if onUpdate}
+                  <button
+                    class="action-btn"
+                    onclick={() => startEdit(event)}
+                    aria-label={m.event_edit()}
+                    title={m.event_edit()}
+                  >
+                    ✏️
+                  </button>
                 {/if}
-                {#if event.description}
-                  <span class="event-description">{event.description}</span>
+                {#if onDelete}
+                  <button
+                    class="action-btn action-btn-danger"
+                    onclick={() => onDelete(event.id)}
+                    aria-label={m.event_delete()}
+                    title={m.event_delete()}
+                  >
+                    🗑️
+                  </button>
                 {/if}
               </div>
             {/if}
-            {#if event.notes}
-              <p class="event-notes">{event.notes}</p>
-            {/if}
-          </div>
-          {#if onEdit || onDelete}
-            <div class="event-actions">
-              {#if onEdit}
-                <button
-                  class="action-btn"
-                  onclick={() => onEdit(event)}
-                  aria-label={m.event_edit()}
-                  title={m.event_edit()}
-                >
-                  ✏️
-                </button>
-              {/if}
-              {#if onDelete}
-                <button
-                  class="action-btn action-btn-danger"
-                  onclick={() => onDelete(event.id)}
-                  aria-label={m.event_delete()}
-                  title={m.event_delete()}
-                >
-                  🗑️
-                </button>
-              {/if}
-            </div>
           {/if}
         </li>
       {/each}
@@ -135,6 +196,12 @@
 
   .event-item:hover {
     background: var(--color-surface-hover);
+  }
+
+  .event-item.editing {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
   }
 
   .event-icon {
@@ -210,5 +277,74 @@
 
   .action-btn-danger:hover {
     background: var(--color-danger-light);
+  }
+
+  /* ── Inline Editing ── */
+  .inline-edit {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex: 1;
+  }
+
+  .edit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .edit-select,
+  .edit-input {
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    transition: border-color var(--transition-fast);
+  }
+
+  .edit-select:focus,
+  .edit-input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+  }
+
+  .edit-actions {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
+  }
+
+  .edit-btn {
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .edit-btn-save {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+  }
+
+  .edit-btn-save:hover {
+    background: var(--color-primary-hover);
+  }
+
+  .edit-btn-cancel {
+    color: var(--color-text-secondary);
+  }
+
+  .edit-btn-cancel:hover {
+    color: var(--color-text);
+    background: var(--color-surface-hover);
+  }
+
+  @media (max-width: 768px) {
+    .edit-row {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

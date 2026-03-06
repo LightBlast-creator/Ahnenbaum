@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as m from '$lib/paraglide/messages';
   import DateInput from '$lib/components/DateInput.svelte';
+  import { EVENT_TYPES } from '$lib/utils/event-type-config';
   import type { GenealogyDate, EventType } from '@ahnenbaum/core';
 
   let {
@@ -15,21 +16,7 @@
   let date: GenealogyDate | undefined = $state(undefined);
   let description = $state('');
 
-  const eventTypes: { value: EventType; label: string }[] = [
-    { value: 'birth', label: '🎂 Birth' },
-    { value: 'death', label: '✝ Death' },
-    { value: 'marriage', label: '💍 Marriage' },
-    { value: 'baptism', label: '💧 Baptism' },
-    { value: 'burial', label: '⚰️ Burial' },
-    { value: 'immigration', label: '🚢 Immigration' },
-    { value: 'emigration', label: '✈️ Emigration' },
-    { value: 'occupation', label: '💼 Occupation' },
-    { value: 'residence', label: '🏠 Residence' },
-    { value: 'military_service', label: '🎖️ Military' },
-    { value: 'education', label: '🎓 Education' },
-    { value: 'census', label: '📋 Census' },
-    { value: 'custom', label: '📝 Custom' },
-  ];
+  const eventTypes = EVENT_TYPES;
 
   function handleSave() {
     onSave({
