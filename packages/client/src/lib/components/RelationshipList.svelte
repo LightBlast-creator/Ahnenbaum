@@ -293,7 +293,7 @@
 
   .rel-delete-btn:hover {
     opacity: 1 !important;
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-error);
+    background: var(--color-danger-light);
   }
 </style>

@@ -232,13 +232,13 @@
   }
 
   .btn-danger {
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger);
     border: 1px solid var(--color-border);
   }
 
   .btn-danger:hover {
-    border-color: var(--color-danger, #ef4444);
-    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
   }
 
   @media (max-width: 768px) {

@@ -734,7 +734,7 @@
 
   .btn-icon-sm:hover {
     opacity: 1 !important;
-    color: #ef4444;
+    color: var(--color-error);
   }
 
   .empty-sm {

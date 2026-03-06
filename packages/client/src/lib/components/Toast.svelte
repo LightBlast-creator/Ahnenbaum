@@ -65,7 +65,7 @@
   const colorVarMap = {
     success: 'var(--color-success)',
     error: 'var(--color-error)',
-    warning: '#d97706',
+    warning: 'var(--color-warning)',
     info: 'var(--color-primary)',
   } as const;
 </script>
@@ -119,7 +119,7 @@
   }
 
   .toast.warning {
-    border-color: #d97706;
+    border-color: var(--color-warning);
   }
 
   .toast.info {

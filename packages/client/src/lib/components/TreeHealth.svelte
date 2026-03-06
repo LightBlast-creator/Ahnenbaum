@@ -64,15 +64,15 @@
   }
 
   .health-card[data-severity='green'] {
-    border-left: 3px solid #22c55e;
+    border-left: 3px solid var(--color-severity-green);
   }
 
   .health-card[data-severity='yellow'] {
-    border-left: 3px solid #eab308;
+    border-left: 3px solid var(--color-severity-yellow);
   }
 
   .health-card[data-severity='red'] {
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid var(--color-severity-red);
   }
 
   .health-icon {
@@ -86,15 +86,15 @@
   }
 
   .health-card[data-severity='green'] .health-count {
-    color: #22c55e;
+    color: var(--color-severity-green);
   }
 
   .health-card[data-severity='yellow'] .health-count {
-    color: #eab308;
+    color: var(--color-severity-yellow);
   }
 
   .health-card[data-severity='red'] .health-count {
-    color: #ef4444;
+    color: var(--color-severity-red);
   }
 
   .health-label {

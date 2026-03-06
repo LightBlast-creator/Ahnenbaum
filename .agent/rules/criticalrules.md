@@ -55,3 +55,11 @@
 - Never dismiss a warning as "pre-existing" or "not from our changes". If it's in the output, it's our problem.
 - If a warning can't be fixed (rare), suppress it with an inline `<!-- svelte-ignore -->` comment and document why.
 
+## 9. Triple Self-Review Before Presenting Plans
+
+- **Before calling `notify_user` with ANY planning document** (implementation plan, feature spec, design doc, GitHub issue), run the `/review` workflow on it **three times**.
+- Each pass catches progressively subtler issues: structural gaps → logical flaws → clarity/polish.
+- Only present to the user after all three passes produce no actionable findings.
+- This is NON-NEGOTIABLE. Skipping review wastes user time and erodes trust.
+- **If you catch yourself about to present without reviewing: STOP. Review first.**
+

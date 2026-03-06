@@ -209,6 +209,6 @@
   }
 
   .action-btn-danger:hover {
-    background: var(--color-danger-light, rgba(239, 68, 68, 0.1));
+    background: var(--color-danger-light);
   }
 </style>

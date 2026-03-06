@@ -148,7 +148,7 @@
   }
 
   .media-card.primary {
-    border-color: var(--color-warning, #f59e0b);
+    border-color: var(--color-warning);
   }
 
   .media-card.selected {

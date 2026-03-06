@@ -217,12 +217,12 @@
   }
 
   .btn-toolbar.btn-danger {
-    color: var(--color-danger, #ef4444);
-    border-color: var(--color-danger, #ef4444);
+    color: var(--color-danger);
+    border-color: var(--color-danger);
   }
 
   .btn-toolbar.btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--color-danger-light);
   }
 
   .gallery-grid {

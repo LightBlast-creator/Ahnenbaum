@@ -32,6 +32,12 @@
   --color-error: #dc2626;
   --color-info: #2f529f;
 
+  --color-danger: var(--color-error);
+  --color-danger-light: rgba(220, 38, 38, 0.1);
+  --color-severity-green: #22c55e;
+  --color-severity-yellow: #eab308;
+  --color-severity-red: #ef4444;
+
   /* ── Typography ── */
   --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;

@@ -296,9 +296,9 @@
   }
 
   .btn-delete:hover {
-    border-color: #ef4444;
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.08);
+    border-color: var(--color-error);
+    color: var(--color-error);
+    background: var(--color-danger-light);
     opacity: 1;
   }
 

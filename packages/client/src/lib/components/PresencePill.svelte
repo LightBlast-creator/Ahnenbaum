@@ -55,7 +55,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #22c55e;
+    background: var(--color-success);
     box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
     animation: pulse-dot 2s ease-in-out infinite;
   }
@@ -109,7 +109,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #22c55e;
+    background: var(--color-success);
     flex-shrink: 0;
   }
 </style>

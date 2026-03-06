@@ -121,7 +121,7 @@
   }
 
   .upload-progress.all-done {
-    border-color: var(--color-success, #22c55e);
+    border-color: var(--color-success);
   }
 
   .progress-header {
@@ -225,7 +225,7 @@
 
   .item-error {
     font-size: var(--font-size-xs);
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger);
     display: block;
     margin-top: 2px;
   }
@@ -247,12 +247,12 @@
   }
 
   .status-success {
-    color: var(--color-success, #22c55e);
+    color: var(--color-success);
     font-weight: var(--font-weight-bold);
   }
 
   .status-error {
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger);
     font-weight: var(--font-weight-bold);
   }
 

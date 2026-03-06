@@ -142,13 +142,13 @@
   }
 
   .danger .confirm-icon {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: var(--color-danger-light);
+    color: var(--color-error);
   }
 
   .warning .confirm-icon {
     background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
+    color: var(--color-warning);
   }
 
   .confirm-title {
@@ -191,21 +191,21 @@
   }
 
   .danger .btn-confirm {
-    background: #ef4444;
+    background: var(--color-error);
     color: white;
   }
 
   .danger .btn-confirm:hover {
-    background: #dc2626;
+    filter: brightness(0.85);
   }
 
   .warning .btn-confirm {
-    background: #f59e0b;
+    background: var(--color-warning);
     color: white;
   }
 
   .warning .btn-confirm:hover {
-    background: #d97706;
+    filter: brightness(0.85);
   }
 
   @keyframes fade-in {
