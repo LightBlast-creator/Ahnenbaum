@@ -4,10 +4,11 @@
   import { base } from '$app/paths';
   import PluginNav from '$lib/components/PluginNav.svelte';
   import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
+  import Icon, { type IconName } from '$lib/components/Icon.svelte';
 
   let { collapsed = false, onToggle }: { collapsed: boolean; onToggle: () => void } = $props();
 
-  const navItems = $derived([
+  const navItems: { href: string; label: string; icon: IconName; shortcut: string }[] = $derived([
     { href: '/', label: m.nav_home(), icon: 'home', shortcut: '' },
     { href: '/persons', label: m.nav_people(), icon: 'users', shortcut: '' },
     { href: '/tree', label: m.nav_tree(), icon: 'tree', shortcut: '' },
@@ -40,110 +41,8 @@
         class:active={isActive(item.href)}
         aria-current={isActive(item.href) ? 'page' : undefined}
       >
-        <span class="nav-icon" aria-hidden="true">
-          {#if item.icon === 'home'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline
-                points="9 22 9 12 15 12 15 22"
-              /></svg
-            >
-          {:else if item.icon === 'users'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
-                cx="9"
-                cy="7"
-                r="4"
-              /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg
-            >
-          {:else if item.icon === 'tree'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M12 22V8" /><path d="M5 12H2a10 10 0 0 0 20 0h-3" /><path
-                d="M8 8a4 4 0 1 1 8 0"
-              /></svg
-            >
-          {:else if item.icon === 'media'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle
-                cx="8.5"
-                cy="8.5"
-                r="1.5"
-              /><polyline points="21 15 16 10 5 21" /></svg
-            >
-          {:else if item.icon === 'search'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
-            >
-          {:else if item.icon === 'sources'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path
-                d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
-              /></svg
-            >
-          {:else if item.icon === 'places'}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle
-                cx="12"
-                cy="10"
-                r="3"
-              /></svg
-            >
-          {/if}
+        <span class="nav-icon">
+          <Icon name={item.icon} />
         </span>
         {#if !collapsed}
           <span class="nav-label">{item.label}</span>
@@ -168,22 +67,7 @@
     onclick={onToggle}
     aria-label={collapsed ? m.sidebar_expand() : m.sidebar_collapse()}
   >
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      {#if collapsed}
-        <polyline points="9 18 15 12 9 6" />
-      {:else}
-        <polyline points="15 18 9 12 15 6" />
-      {/if}
-    </svg>
+    <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} />
   </button>
 </aside>
 
