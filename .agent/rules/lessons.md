@@ -116,3 +116,11 @@
 - `localStorage` stores the user's explicit choice via `setLocale()`.
 - **Bug**: If `preferredLanguage` comes first, the user's explicit choice in localStorage is never checked after page reload — browser language always wins.
 - **Fix**: Order strategies as `['localStorage', 'preferredLanguage', 'baseLocale']`. User's explicit choice wins, browser language is fallback for first-time visitors, `baseLocale` is last resort.
+
+## Soft-delete: Always cascade to all FK-referencing entities
+- Soft-deleting a record without cascading to related entities creates orphaned references. Other code that traverses FK relationships (e.g., counting unique person IDs in relationships for dashboard stats) will include deleted entity IDs, producing impossible values like negative counts.
+- **Fix**: Every `deleteEntity()` function must cascade to all tables that reference it — soft-delete child entities with `deletedAt` columns, hard-delete junction rows without one, and null out nullable FKs. Audit the full FK graph when adding delete functions.
+
+## Implementation Plans: Triple self-review before presenting
+- Presenting an implementation plan without thorough self-review leads to missed edge cases, unclear scope, and wasted user review cycles.
+- **Fix**: Before presenting any implementation plan to the user via `notify_user`, run the `/review` workflow on it at least **three times**. Each pass should catch progressively subtler issues (structural gaps → logical flaws → clarity/polish). Only present after all three passes produce no actionable findings.
