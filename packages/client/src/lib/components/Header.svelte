@@ -2,6 +2,7 @@
   import * as m from '$lib/paraglide/messages';
   import PresencePill from '$lib/components/PresencePill.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import PrintButton from '$lib/components/PrintButton.svelte';
 
   let { onSearchClick, onAddPerson }: { onSearchClick: () => void; onAddPerson: () => void } =
     $props();
@@ -40,6 +41,7 @@
 
   <div class="header-right">
     <PresencePill />
+    <PrintButton />
     <button
       class="header-btn theme-btn"
       onclick={toggleTheme}

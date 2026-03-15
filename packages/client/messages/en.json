@@ -251,5 +251,7 @@
   "media_delete_selected_confirm": "Are you sure you want to delete {count} media items?",
   "media_upload_queued": "Queued",
   "media_upload_complete": "Upload complete",
-  "media_upload_items": "{done} / {total} uploaded"
+  "media_upload_items": "{done} / {total} uploaded",
+  "print_page": "Print",
+  "print_tree": "Print tree"
 }

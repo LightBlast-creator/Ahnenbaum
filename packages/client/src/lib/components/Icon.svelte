@@ -11,7 +11,8 @@
     | 'sun'
     | 'moon'
     | 'chevron-left'
-    | 'chevron-right';
+    | 'chevron-right'
+    | 'printer';
 </script>
 
 <script lang="ts">
@@ -73,5 +74,9 @@
     <polyline points="15 18 9 12 15 6" />
   {:else if name === 'chevron-right'}
     <polyline points="9 18 15 12 9 6" />
+  {:else if name === 'printer'}
+    <polyline points="6 9 6 2 18 2 18 9" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" />
   {/if}
 </svg>

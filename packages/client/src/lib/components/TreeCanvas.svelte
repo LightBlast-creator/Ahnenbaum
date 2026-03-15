@@ -2,6 +2,7 @@
   import PersonCard from '$lib/components/PersonCard.svelte';
   import TreeControls from '$lib/components/TreeControls.svelte';
   import TreeMinimap from '$lib/components/TreeMinimap.svelte';
+  import PrintButton from '$lib/components/PrintButton.svelte';
   import { getTreeBounds, type PositionedNode } from '$lib/utils/tree-layout';
   import type { GraphConnection, FamilyGroup } from '$lib/utils/family-graph-layout';
   import { CARD_HALF_HEIGHT, CARD_WIDTH } from '$lib/utils/tree-constants';
@@ -362,6 +363,50 @@
     panX = newPanX;
     panY = newPanY;
   }
+
+  let svgEl: SVGSVGElement | undefined = $state(undefined);
+
+  // ── Print support: make SVG self-sizing for Ctrl+P ──
+  let savedTransform = '';
+
+  function handleBeforePrint() {
+    if (!svgEl) return;
+    const innerG = svgEl.querySelector('g[transform]');
+    if (innerG) {
+      savedTransform = innerG.getAttribute('transform') || '';
+      innerG.removeAttribute('transform');
+    }
+    // Set viewBox so SVG sizes itself without a sized parent
+    const padding = 80;
+    const vx = bounds.minX - CARD_WIDTH / 2 - padding;
+    const vy = bounds.minY - CARD_HALF_HEIGHT - padding;
+    const vw = bounds.width + CARD_WIDTH + padding * 2;
+    const vh = bounds.height + CARD_HALF_HEIGHT * 2 + padding * 2;
+    svgEl.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+    svgEl.removeAttribute('width');
+    svgEl.removeAttribute('height');
+  }
+
+  function handleAfterPrint() {
+    if (!svgEl) return;
+    // Restore interactive state
+    svgEl.removeAttribute('viewBox');
+    svgEl.setAttribute('width', '100%');
+    svgEl.setAttribute('height', '100%');
+    const innerG = svgEl.querySelector('g');
+    if (innerG && savedTransform) {
+      innerG.setAttribute('transform', savedTransform);
+    }
+  }
+
+  $effect(() => {
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -381,7 +426,7 @@
   aria-label="Family tree"
   class:panning={isPanning}
 >
-  <svg class="tree-svg" width="100%" height="100%">
+  <svg class="tree-svg" width="100%" height="100%" bind:this={svgEl}>
     <g transform="translate({panX}, {panY}) scale({scale})">
       <!-- Generation banding (behind everything) -->
       {#each generationLayers as layer, i (layer.generation)}
@@ -540,6 +585,9 @@
     onToggleMinimap={toggleMinimap}
   />
 
+  <!-- Print -->
+  <PrintButton mode="tree" svgElement={svgEl} nodes={visibleNodes} class="tree-print-btn" />
+
   <!-- Minimap -->
   {#if minimapVisible}
     <TreeMinimap
@@ -605,5 +653,16 @@
     font-family: var(--font-family);
     opacity: 0.5;
     pointer-events: none;
+  }
+
+  :global(.tree-print-btn) {
+    position: absolute;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    z-index: var(--z-dropdown);
   }
 </style>

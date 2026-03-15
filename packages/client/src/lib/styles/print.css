@@ -1,0 +1,197 @@
+/* =================================================================
+   Print Styles — @media print optimisations
+
+   Hides the app shell (sidebar, header, controls) and optimises
+   content for paper output. Imported from global.css.
+   ================================================================= */
+
+@media print {
+  /* ── Hide app shell & interactive controls ── */
+  .sidebar,
+  .header,
+  .sidebar-backdrop,
+  .skip-link,
+  .no-print,
+  .tree-controls,
+  .tree-minimap,
+  .btn-add-outline,
+  .btn-edit,
+  .btn-delete,
+  .header-actions,
+  .view-controls,
+  .filter-bar,
+  .toolbar .search-box,
+  .form-actions,
+  .add-form,
+  .breadcrumbs {
+    display: none !important;
+  }
+
+  /* ── Reset app layout: unlock natural page flow ──
+     The app uses flex + height:100vh + overflow:hidden to create a
+     single-page scroll container. For print, we need to completely
+     undo this so content flows naturally across multiple pages. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-layout {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-main {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-content {
+    display: block !important;
+    height: auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .page-transition {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* ── Force light colours regardless of theme ── */
+  :root,
+  [data-theme='dark'] {
+    --color-text: #000;
+    --color-text-secondary: #333;
+    --color-text-muted: #666;
+    --color-bg: #fff;
+    --color-bg-secondary: #f5f5f5;
+    --color-surface: #fff;
+    --color-surface-hover: #fff;
+    --color-border: #ccc;
+    --color-primary: #2f529f;
+    --color-primary-light: #e8edf5;
+  }
+
+  /* ── Typography for print ── */
+  html {
+    font-size: 11pt;
+  }
+
+  body {
+    min-height: auto;
+  }
+
+  /* ── Dashboard gradient text → solid black ── */
+  .dashboard-hero h1 {
+    -webkit-text-fill-color: initial;
+    background: none !important;
+    color: #000 !important;
+  }
+
+  /* ── Preserve coloured backgrounds ── */
+  .person-avatar,
+  .recent-avatar,
+  .stat-card .stat-icon,
+  .cit-badge,
+  .name-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Page break avoidance ── */
+  .person-header,
+  .stat-card,
+  .recent-card,
+  .table-row,
+  .citation-card,
+  .person-notes,
+  .person-detail,
+  .entity-table {
+    break-inside: avoid;
+  }
+
+  /* ── Remove hover/interactive styles ── */
+  .stat-card:hover,
+  .recent-card:hover,
+  .table-row:hover,
+  .citation-card:hover,
+  .action-card:hover,
+  .nav-item:hover {
+    background: inherit;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* ── Remove animations ── */
+  .animate-in {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Links: show URL inline ── */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.8em;
+    color: #666;
+    word-break: break-all;
+  }
+
+  /* Skip internal navigation links */
+  .nav-item::after,
+  .stat-card::after,
+  .recent-card::after,
+  .action-card::after,
+  .view-all::after {
+    content: none !important;
+  }
+
+  /* ── Table borders for clarity ── */
+  .entity-table {
+    border: 1px solid #999;
+  }
+
+  .entity-table .table-header {
+    border-bottom: 2px solid #666;
+  }
+
+  .entity-table .table-row {
+    border-bottom: 1px solid #ccc;
+  }
+
+  /* ── Page layout ── */
+  @page {
+    margin: 1.5cm;
+  }
+
+  /* ── Entity page: full width ── */
+  .entity-page,
+  .dashboard,
+  .person-detail {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* ── Tree page: full bleed ── */
+  .tree-page {
+    margin: 0;
+    height: auto;
+    min-height: auto;
+  }
+
+  .tree-canvas {
+    min-height: auto;
+    height: auto;
+    overflow: visible;
+    background: none !important;
+  }
+
+  .tree-svg {
+    width: 100%;
+    height: auto;
+  }
+}
