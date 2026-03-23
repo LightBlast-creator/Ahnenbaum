@@ -227,14 +227,97 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     }
   }
 
-  // ── Step 1b: Strip conflicting parent↔partner pairs ──────────────
-  // If A is both parent-of AND partner-of B, remove from partnersOf.
-  // Parent-child is the structural/generational constraint; keeping both
-  // causes infinite oscillation in the generation correction loop.
-  for (const [childId, parents] of parentsOf.entries()) {
-    for (const parentId of parents) {
-      partnersOf.get(parentId)?.delete(childId);
-      partnersOf.get(childId)?.delete(parentId);
+  // ── Step 1b: Strip conflicting ancestor↔partner pairs ─────────────
+  // Partner-sync forces same generation; ancestor-descendant forces different
+  // generations.  When these conflict — even transitively through a chain of
+  // partner edges — the correction loop diverges.
+  //
+  // Algorithm:
+  //  1. Compute full ancestor sets from the parent→child DAG.
+  //  2. Build partner-connected components (clusters of people linked by
+  //     partner edges who will all share the same generation).
+  //  3. For every cluster, check if any member is an ancestor of another.
+  //     If so, find the shortest partner-path between ancestor and descendant
+  //     and cut the first edge.  Repeat until clean.
+  const ancestorsOf = new Map<string, Set<string>>();
+  function getAncestors(id: string): Set<string> {
+    const cached = ancestorsOf.get(id);
+    if (cached) return cached;
+    const result = new Set<string>();
+    ancestorsOf.set(id, result); // set early to break cycles
+    for (const parentId of parentsOf.get(id) ?? []) {
+      result.add(parentId);
+      for (const a of getAncestors(parentId)) result.add(a);
+    }
+    return result;
+  }
+  for (const person of persons) getAncestors(person.id);
+
+  // BFS shortest path in the partner graph
+  function findPartnerPath(from: string, to: string): string[] | null {
+    const visited = new Set<string>();
+    const prev = new Map<string, string>();
+    const bfsQ = [from];
+    visited.add(from);
+    while (bfsQ.length > 0) {
+      const cur = bfsQ.shift();
+      if (!cur) break;
+      if (cur === to) {
+        const path = [to];
+        let c = to;
+        while (c !== from) {
+          const p = prev.get(c);
+          if (!p) break;
+          c = p;
+          path.unshift(c);
+        }
+        return path;
+      }
+      for (const p of partnersOf.get(cur) ?? []) {
+        if (!visited.has(p)) {
+          visited.add(p);
+          prev.set(p, cur);
+          bfsQ.push(p);
+        }
+      }
+    }
+    return null;
+  }
+
+  let pruned = true;
+  let pruneRounds = 0;
+  while (pruned && pruneRounds++ < 50) {
+    pruned = false;
+    const visited = new Set<string>();
+    for (const person of persons) {
+      if (visited.has(person.id)) continue;
+      const component = new Set<string>();
+      const bfsQ = [person.id];
+      while (bfsQ.length > 0) {
+        const cur = bfsQ.pop();
+        if (!cur) break;
+        if (visited.has(cur)) continue;
+        visited.add(cur);
+        component.add(cur);
+        for (const p of partnersOf.get(cur) ?? []) {
+          if (!visited.has(p)) bfsQ.push(p);
+        }
+      }
+      if (component.size <= 1) continue;
+      const members = [...component];
+      for (let i = 0; i < members.length && !pruned; i++) {
+        const anc = ancestorsOf.get(members[i]) ?? new Set();
+        for (let j = 0; j < members.length && !pruned; j++) {
+          if (i === j || !anc.has(members[j])) continue;
+          // members[j] is ancestor of members[i] — cut bridging edge
+          const path = findPartnerPath(members[j], members[i]);
+          if (path && path.length >= 2) {
+            partnersOf.get(path[0])?.delete(path[1]);
+            partnersOf.get(path[1])?.delete(path[0]);
+            pruned = true;
+          }
+        }
+      }
     }
   }
 
@@ -262,20 +345,22 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
 
     generation.set(personId, gen);
 
-    // Assign partners to the same generation
-    for (const partnerId of partnersOf.get(personId) ?? []) {
-      const pGen = generation.get(partnerId);
-      if (pGen === undefined || pGen < gen) {
-        queue.push([partnerId, gen]);
-      }
-    }
-
-    // Push children one generation down
+    // Only follow parent→child edges — partner sync is handled in
+    // the correction loop to avoid unbounded BFS when co-parent
+    // inference creates partner links between ancestors/descendants.
     for (const childId of childrenOf.get(personId) ?? []) {
       const cGen = generation.get(childId);
       if (cGen === undefined || cGen < gen + 1) {
         queue.push([childId, gen + 1]);
       }
+    }
+  }
+
+  // Assign generation 0 to persons not reached by parent-child BFS
+  // (e.g. in-law spouses with no children in the tree)
+  for (const person of persons) {
+    if (!generation.has(person.id)) {
+      generation.set(person.id, 0);
     }
   }
 
@@ -319,17 +404,24 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     // Sync siblings: children of the same parent set should share the max gen.
     // When one sibling gets pulled down by a partner relationship, their
     // siblings must follow so the parent isn't anchored at a too-low gen.
+    // IMPORTANT: Skip sibling pairs where one is an ancestor of the other
+    // (e.g. both are children of the same grandmother but one is also parent
+    // of the other) — forcing them to the same gen would oscillate with
+    // push-children-down.
     for (const [, children] of childrenOf.entries()) {
-      let maxSibGen = -Infinity;
-      for (const childId of children) {
-        const cg = generation.get(childId);
-        if (cg !== undefined && cg > maxSibGen) maxSibGen = cg;
-      }
-      if (maxSibGen === -Infinity) continue;
-      for (const childId of children) {
-        const cg = generation.get(childId);
-        if (cg !== undefined && cg < maxSibGen) {
-          generation.set(childId, maxSibGen);
+      const sibs = [...children];
+      for (const c of sibs) {
+        const cg = generation.get(c);
+        if (cg === undefined) continue;
+        for (const s of sibs) {
+          if (s === c) continue;
+          const sg = generation.get(s);
+          if (sg === undefined || sg >= cg) continue;
+          // Only sync if neither is ancestor of the other
+          const sAnc = ancestorsOf.get(s);
+          const cAnc = ancestorsOf.get(c);
+          if (sAnc?.has(c) || cAnc?.has(s)) continue;
+          generation.set(s, cg);
           changed = true;
         }
       }
