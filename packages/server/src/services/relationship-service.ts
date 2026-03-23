@@ -6,12 +6,16 @@ import { eq, or, isNull, and, inArray } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ok, err, type Result } from '@ahnenbaum/core';
 import type { GenealogyDate, RelationshipRow } from '@ahnenbaum/core';
-import { PARENT_CHILD_TYPES } from '@ahnenbaum/core';
+import { PARENT_CHILD_TYPES, PARTNER_TYPES } from '@ahnenbaum/core';
 import { relationships, events, mediaLinks } from '../db/schema/index.ts';
 import { mustGet, countRows } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
 import { normalizePagination } from '../utils/pagination.ts';
 import { persons } from '../db/schema/persons.ts';
+
+type RelType = typeof relationships.$inferInsert.type;
+const PARENT_CHILD_SET = new Set<string>(PARENT_CHILD_TYPES);
+const PARTNER_SET = new Set<string>(PARTNER_TYPES);
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -76,6 +80,44 @@ export function createRelationship(
 
   if (existing) {
     return err('CONFLICT', 'This relationship already exists');
+  }
+
+  // Reject conflicting relationship types between same pair
+  // (e.g. can't be both parent-of AND married-to the same person)
+  const conflictTypes = PARENT_CHILD_SET.has(input.type)
+    ? (PARTNER_TYPES as readonly string[])
+    : PARTNER_SET.has(input.type)
+      ? (PARENT_CHILD_TYPES as readonly string[])
+      : null;
+
+  if (conflictTypes) {
+    const conflict = db
+      .select()
+      .from(relationships)
+      .where(
+        and(
+          isNull(relationships.deletedAt),
+          inArray(relationships.type, conflictTypes as [RelType, ...RelType[]]),
+          or(
+            and(
+              eq(relationships.personAId, input.personAId),
+              eq(relationships.personBId, input.personBId),
+            ),
+            and(
+              eq(relationships.personAId, input.personBId),
+              eq(relationships.personBId, input.personAId),
+            ),
+          ),
+        ),
+      )
+      .get();
+
+    if (conflict) {
+      return err(
+        'VALIDATION_ERROR',
+        `Cannot create ${input.type} — a conflicting ${conflict.type} relationship already exists between these persons`,
+      );
+    }
   }
 
   const timestamp = now();
@@ -158,6 +200,45 @@ export function updateRelationship(
 ): Result<RelationshipRow> {
   const existing = db.select().from(relationships).where(eq(relationships.id, id)).get();
   if (!existing || existing.deletedAt) return err('NOT_FOUND', `Relationship '${id}' not found`);
+
+  // When changing type, validate no cross-type conflict exists
+  if (input.type && input.type !== existing.type) {
+    const conflictTypes = PARENT_CHILD_SET.has(input.type)
+      ? (PARTNER_TYPES as readonly string[])
+      : PARTNER_SET.has(input.type)
+        ? (PARENT_CHILD_TYPES as readonly string[])
+        : null;
+
+    if (conflictTypes) {
+      const conflict = db
+        .select()
+        .from(relationships)
+        .where(
+          and(
+            isNull(relationships.deletedAt),
+            inArray(relationships.type, conflictTypes as [RelType, ...RelType[]]),
+            or(
+              and(
+                eq(relationships.personAId, existing.personAId),
+                eq(relationships.personBId, existing.personBId),
+              ),
+              and(
+                eq(relationships.personAId, existing.personBId),
+                eq(relationships.personBId, existing.personAId),
+              ),
+            ),
+          ),
+        )
+        .get();
+
+      if (conflict) {
+        return err(
+          'VALIDATION_ERROR',
+          `Cannot change to ${input.type} — a conflicting ${conflict.type} relationship already exists between these persons`,
+        );
+      }
+    }
+  }
 
   db.update(relationships)
     .set({

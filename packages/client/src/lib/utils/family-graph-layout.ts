@@ -227,6 +227,17 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
     }
   }
 
+  // ── Step 1b: Strip conflicting parent↔partner pairs ──────────────
+  // If A is both parent-of AND partner-of B, remove from partnersOf.
+  // Parent-child is the structural/generational constraint; keeping both
+  // causes infinite oscillation in the generation correction loop.
+  for (const [childId, parents] of parentsOf.entries()) {
+    for (const parentId of parents) {
+      partnersOf.get(parentId)?.delete(childId);
+      partnersOf.get(childId)?.delete(parentId);
+    }
+  }
+
   // ── Step 2: Assign generations (longest-path BFS) ────────────────
 
   // generation[personId] = generation number (0 = oldest root)
@@ -271,8 +282,10 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
   // ── Step 2b: Correct generation gaps from partner-pull cascading ──
   // When children get pulled to higher gens through partner relationships,
   // their parents may be too far above. Iterate until stable.
+  const MAX_ITERATIONS = 100;
   let changed = true;
-  while (changed) {
+  let iterations = 0;
+  while (changed && iterations++ < MAX_ITERATIONS) {
     changed = false;
 
     // Pull parents down: parent.gen should be min(child.gen) - 1
@@ -334,6 +347,12 @@ export function layoutFamilyGraph(persons: PersonWithDetails[], edges: GraphEdge
         }
       }
     }
+  }
+
+  if (iterations >= MAX_ITERATIONS) {
+    console.warn(
+      '[tree] generation correction exceeded iteration cap — possible conflicting relationships',
+    );
   }
 
   // Handle disconnected persons (no relationships at all) — assign to gen 0

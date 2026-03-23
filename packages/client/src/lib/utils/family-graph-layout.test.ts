@@ -412,4 +412,37 @@ describe('layoutFamilyGraph', () => {
     expect(genOf('wolfgang')).toBe(2);
     expect(genOf('thomas')).toBe(2);
   });
+  it('handles conflicting parent-child + marriage without infinite loop', () => {
+    // Bug reproduction: person A is both biological_parent of AND married to person B.
+    // This creates an impossible generation constraint that caused infinite oscillation.
+    // The fix strips conflicting pairs from the partner map, so parent-child wins.
+    const persons = [
+      makePerson('parentSpouse', 'A', 'X'),
+      makePerson('childSpouse', 'B', 'X'),
+      makePerson('grandchild', 'C', 'X'),
+    ];
+    const edges: GraphEdge[] = [
+      // A is parent of B
+      { id: 'r1', personAId: 'parentSpouse', personBId: 'childSpouse', type: 'biological_parent' },
+      // A is also married to B (conflicting!)
+      { id: 'r2', personAId: 'parentSpouse', personBId: 'childSpouse', type: 'marriage' },
+      // B is parent of C (to test that generations still propagate correctly)
+      { id: 'r3', personAId: 'childSpouse', personBId: 'grandchild', type: 'biological_parent' },
+    ];
+
+    // This should complete without hanging (the bug caused an infinite loop)
+    const result = layoutFamilyGraph(persons, edges);
+
+    expect(result.nodes).toHaveLength(3);
+
+    const genOf = (id: string) => {
+      const node = result.nodes.find((n) => n.person.id === id);
+      if (!node) throw new Error(`Node not found: ${id}`);
+      return node.generation;
+    };
+
+    // Parent-child constraint should win: A at gen 0, B at gen 1, C at gen 2
+    expect(genOf('parentSpouse')).toBeLessThan(genOf('childSpouse'));
+    expect(genOf('childSpouse')).toBeLessThan(genOf('grandchild'));
+  });
 });

@@ -96,14 +96,14 @@ describe('relationshipService', () => {
     expect(result.error.code).toBe('CONFLICT');
   });
 
-  it('allows different relationship types between same persons', () => {
+  it('allows different relationship types within the same category', () => {
     const a = createTestPerson(db, 'A', 'Multi');
     const b = createTestPerson(db, 'B', 'Multi');
 
     const r1 = relService.createRelationship(db, {
       personAId: a.id,
       personBId: b.id,
-      type: 'marriage',
+      type: 'biological_parent',
     });
     const r2 = relService.createRelationship(db, {
       personAId: a.id,
@@ -113,6 +113,27 @@ describe('relationshipService', () => {
 
     expect(r1.ok).toBe(true);
     expect(r2.ok).toBe(true);
+  });
+
+  it('rejects conflicting parent-child + partner between same persons', () => {
+    const a = createTestPerson(db, 'A', 'Conflict');
+    const b = createTestPerson(db, 'B', 'Conflict');
+
+    const r1 = relService.createRelationship(db, {
+      personAId: a.id,
+      personBId: b.id,
+      type: 'biological_parent',
+    });
+    const r2 = relService.createRelationship(db, {
+      personAId: a.id,
+      personBId: b.id,
+      type: 'marriage',
+    });
+
+    expect(r1.ok).toBe(true);
+    expect(r2.ok).toBe(false);
+    if (r2.ok) return;
+    expect(r2.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('gets relationships for a person grouped by type', () => {

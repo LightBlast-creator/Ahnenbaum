@@ -37,6 +37,16 @@ export type PartnerRelationshipType =
   | 'engagement'
   | 'custom';
 
+/** Runtime list of all partner/spouse relationship types. */
+export const PARTNER_TYPES: readonly PartnerRelationshipType[] = [
+  'marriage',
+  'civil_partnership',
+  'domestic_partnership',
+  'cohabitation',
+  'engagement',
+  'custom',
+] as const;
+
 /** All relationship types. */
 export type RelationshipType = ParentChildRelationshipType | PartnerRelationshipType;
 

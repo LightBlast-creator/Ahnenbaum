@@ -69,7 +69,7 @@ export type {
   // Search
   SearchEntityType,
 } from './models/index.ts';
-export { PARENT_CHILD_TYPES } from './models/index.ts';
+export { PARENT_CHILD_TYPES, PARTNER_TYPES } from './models/index.ts';
 
 // ── Auth types ───────────────────────────────────────────────────────
 export type { AuthMode, UserRole, Session } from './models/auth.ts';
