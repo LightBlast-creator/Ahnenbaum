@@ -17,6 +17,41 @@ type RelType = typeof relationships.$inferInsert.type;
 const PARENT_CHILD_SET = new Set<string>(PARENT_CHILD_TYPES);
 const PARTNER_SET = new Set<string>(PARTNER_TYPES);
 
+/**
+ * Walk up parent-child edges from `personId` to collect all ancestor IDs.
+ * Uses iterative BFS with a visited set to stay safe even if bad data exists.
+ */
+function getAncestors(db: BetterSQLite3Database, personId: string): Set<string> {
+  const ancestors = new Set<string>();
+  const queue: string[] = [personId];
+  const parentChildTypes = PARENT_CHILD_TYPES as readonly RelType[];
+
+  let current: string | undefined;
+  while ((current = queue.pop()) !== undefined) {
+    // Find all parent-child rels where current is the child (personB)
+    const parentRels = db
+      .select({ parentId: relationships.personAId })
+      .from(relationships)
+      .where(
+        and(
+          isNull(relationships.deletedAt),
+          eq(relationships.personBId, current),
+          inArray(relationships.type, parentChildTypes as [RelType, ...RelType[]]),
+        ),
+      )
+      .all();
+
+    for (const { parentId } of parentRels) {
+      if (!ancestors.has(parentId)) {
+        ancestors.add(parentId);
+        queue.push(parentId);
+      }
+    }
+  }
+
+  return ancestors;
+}
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface CreateRelationshipInput {
@@ -116,6 +151,48 @@ export function createRelationship(
       return err(
         'VALIDATION_ERROR',
         `Cannot create ${input.type} — a conflicting ${conflict.type} relationship already exists between these persons`,
+      );
+    }
+  }
+
+  // Ancestor/descendant prevention for parent-child edges (A→B):
+  //  1. B must not be an ancestor of A (would create a cycle)
+  //  2. A must not be an indirect ancestor of B — i.e., A already reaches B
+  //     through ≥1 intermediary (the grandmother→grandchild bug).
+  //     Direct A→B with a different parent-child subtype IS allowed
+  //     (e.g. biological_parent + godparent for the same pair).
+  if (PARENT_CHILD_SET.has(input.type)) {
+    const ancestorsOfA = getAncestors(db, input.personAId);
+    if (ancestorsOfA.has(input.personBId)) {
+      return err(
+        'VALIDATION_ERROR',
+        `Cannot create parent-child relationship: the proposed child is already an ancestor of the proposed parent. This would create a cycle.`,
+      );
+    }
+
+    // Check #2: walk ancestors of B and see if A shows up.
+    // Start from B's existing parents (not B) so a direct A→B edge is excluded.
+    const ancestorsOfB = getAncestors(db, input.personBId);
+    // Remove direct parents of B — those are fine (allows multiple subtypes)
+    const directParentsOfB = db
+      .select({ parentId: relationships.personAId })
+      .from(relationships)
+      .where(
+        and(
+          isNull(relationships.deletedAt),
+          eq(relationships.personBId, input.personBId),
+          inArray(relationships.type, PARENT_CHILD_TYPES as readonly [RelType, ...RelType[]]),
+        ),
+      )
+      .all();
+    for (const { parentId } of directParentsOfB) {
+      ancestorsOfB.delete(parentId);
+    }
+
+    if (ancestorsOfB.has(input.personAId)) {
+      return err(
+        'VALIDATION_ERROR',
+        `Cannot create parent-child relationship: the proposed parent is already an ancestor of the proposed child through another path. This would create a cycle.`,
       );
     }
   }

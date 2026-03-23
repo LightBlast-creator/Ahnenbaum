@@ -313,6 +313,115 @@ describe('relationshipService', () => {
     expect(result.data).toHaveLength(0);
   });
 
+  // ── Ancestor-cycle prevention ──────────────────────────────────
+
+  it('rejects grandparent → grandchild parent edge (ancestor cycle)', () => {
+    const grandpa = createTestPerson(db, 'Friedrich', 'Steinbrenner');
+    const parent = createTestPerson(db, 'Heinrich', 'Probst');
+    const grandchild = createTestPerson(db, 'Ernst', 'Probst');
+
+    // grandpa → parent → grandchild
+    relService.createRelationship(db, {
+      personAId: grandpa.id,
+      personBId: parent.id,
+      type: 'biological_parent',
+    });
+    relService.createRelationship(db, {
+      personAId: parent.id,
+      personBId: grandchild.id,
+      type: 'biological_parent',
+    });
+
+    // Try grandpa → grandchild directly — should be rejected (cycle)
+    const result = relService.createRelationship(db, {
+      personAId: grandpa.id,
+      personBId: grandchild.id,
+      type: 'biological_parent',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION_ERROR');
+    expect(result.error.message).toContain('cycle');
+  });
+
+  it('rejects deep ancestor-descendant cycle (4 generations)', () => {
+    const a = createTestPerson(db, 'Gen1', 'Deep');
+    const b = createTestPerson(db, 'Gen2', 'Deep');
+    const c = createTestPerson(db, 'Gen3', 'Deep');
+    const d = createTestPerson(db, 'Gen4', 'Deep');
+
+    // A → B → C → D
+    relService.createRelationship(db, {
+      personAId: a.id,
+      personBId: b.id,
+      type: 'biological_parent',
+    });
+    relService.createRelationship(db, {
+      personAId: b.id,
+      personBId: c.id,
+      type: 'biological_parent',
+    });
+    relService.createRelationship(db, {
+      personAId: c.id,
+      personBId: d.id,
+      type: 'biological_parent',
+    });
+
+    // Try D → A (descendant as parent of ancestor) — cycle
+    const result = relService.createRelationship(db, {
+      personAId: d.id,
+      personBId: a.id,
+      type: 'biological_parent',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('allows parent-child creation between unrelated persons (no false positive)', () => {
+    const a = createTestPerson(db, 'A', 'Unrelated');
+    const b = createTestPerson(db, 'B', 'Unrelated');
+    const c = createTestPerson(db, 'C', 'Unrelated');
+
+    // A → B (separate lineage)
+    relService.createRelationship(db, {
+      personAId: a.id,
+      personBId: b.id,
+      type: 'biological_parent',
+    });
+
+    // C → A should succeed (C is not in B's lineage, no cycle)
+    const result = relService.createRelationship(db, {
+      personAId: c.id,
+      personBId: a.id,
+      type: 'biological_parent',
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects cycle across different parent-child subtypes', () => {
+    const a = createTestPerson(db, 'Bio', 'Cross');
+    const b = createTestPerson(db, 'Adopt', 'Cross');
+
+    // A → B (biological)
+    relService.createRelationship(db, {
+      personAId: a.id,
+      personBId: b.id,
+      type: 'biological_parent',
+    });
+
+    // Try B → A (adoptive) — still a cycle
+    const result = relService.createRelationship(db, {
+      personAId: b.id,
+      personBId: a.id,
+      type: 'adoptive_parent',
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION_ERROR');
+    expect(result.error.message).toContain('cycle');
+  });
+
   // ── Cascade deletion ────────────────────────────────────────────
 
   it('cascade-deletes events when deleting a relationship', () => {
