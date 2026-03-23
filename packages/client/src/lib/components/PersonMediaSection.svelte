@@ -7,6 +7,7 @@
   import UploadProgress from '$lib/components/media/UploadProgress.svelte';
   import type { UploadItem } from '$lib/components/media/UploadProgress.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import LinkExistingMediaModal from '$lib/components/media/LinkExistingMediaModal.svelte';
 
   let {
     personId,
@@ -26,6 +27,9 @@
   let pendingDeleteId = $state<string | null>(null);
   let batchDeleteIds = $state<string[]>([]);
   let batchConfirmOpen = $state(false);
+  let linkModalOpen = $state(false);
+
+  const alreadyLinkedIds = $derived(new Set(personMediaItems.map((i) => i.media.id)));
 
   // Upload progress state
   let uploadQueue = $state<UploadItem[]>([]);
@@ -212,6 +216,11 @@
       onToast(m.toast_error(), 'error');
     }
   }
+
+  function handleLinked(message: string, type: 'success' | 'error') {
+    onToast(message, type);
+    loadMedia();
+  }
 </script>
 
 <div class="person-media-section">
@@ -222,6 +231,9 @@
     onSetPrimary={handleSetPrimary}
     onBatchDelete={handleBatchDelete}
   />
+  <button class="btn-add-outline" onclick={() => (linkModalOpen = true)}>
+    + {m.media_link_existing()}
+  </button>
 </div>
 
 <MediaViewer
@@ -262,6 +274,13 @@
 />
 
 <UploadProgress items={uploadQueue} />
+
+<LinkExistingMediaModal
+  bind:open={linkModalOpen}
+  {personId}
+  {alreadyLinkedIds}
+  onLinked={handleLinked}
+/>
 
 <style>
   .person-media-section {

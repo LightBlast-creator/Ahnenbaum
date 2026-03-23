@@ -253,5 +253,8 @@
   "media_upload_complete": "Upload complete",
   "media_upload_items": "{done} / {total} uploaded",
   "print_page": "Print",
-  "print_tree": "Print tree"
+  "print_tree": "Print tree",
+  "media_link_existing": "Link existing media",
+  "media_link_existing_empty": "No unlinked media available",
+  "media_link_existing_search": "Search media…"
 }

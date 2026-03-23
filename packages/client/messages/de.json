@@ -253,5 +253,8 @@
   "media_upload_complete": "Upload abgeschlossen",
   "media_upload_items": "{done} / {total} hochgeladen",
   "print_page": "Drucken",
-  "print_tree": "Stammbaum drucken"
+  "print_tree": "Stammbaum drucken",
+  "media_link_existing": "Vorhandenes Medium verknüpfen",
+  "media_link_existing_empty": "Keine unverknüpften Medien verfügbar",
+  "media_link_existing_search": "Medien suchen…"
 }
