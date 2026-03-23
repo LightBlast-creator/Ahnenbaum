@@ -116,6 +116,26 @@ export function rebuildIndex(db: BetterSQLite3Database): void {
   `);
 }
 
+// ── Incremental index updates ────────────────────────────────────────
+
+/**
+ * Remove a single entity from the search index.
+ * Called when an entity is soft-deleted so it no longer appears in results.
+ */
+export function removeFromIndex(
+  db: BetterSQLite3Database,
+  entityType: SearchEntityType,
+  entityId: string,
+): void {
+  try {
+    db.run(
+      sql`DELETE FROM search_index WHERE entity_type = ${entityType} AND entity_id = ${entityId}`,
+    );
+  } catch {
+    // search_index table may not exist yet (e.g. during tests) — silently skip
+  }
+}
+
 // ── Search ───────────────────────────────────────────────────────────
 
 /**

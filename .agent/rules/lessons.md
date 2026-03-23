@@ -124,3 +124,20 @@
 ## Implementation Plans: Triple self-review before presenting
 - Presenting an implementation plan without thorough self-review leads to missed edge cases, unclear scope, and wasted user review cycles.
 - **Fix**: Before presenting any implementation plan to the user via `notify_user`, run the `/review` workflow on it at least **three times**. Each pass should catch progressively subtler issues (structural gaps → logical flaws → clarity/polish). Only present after all three passes produce no actionable findings.
+
+## Docker: `--build` does not bypass BuildKit cache
+
+- `docker compose up -d --build` uses BuildKit's content-based cache. If it believes the COPY'd files haven't changed (e.g., due to filesystem metadata like timestamps not changing, or layer deduplication), it will serve a fully CACHED image even after `git pull` updates the source code.
+- This means deploying code changes via `git pull && docker compose up -d --build` can silently fail to include the new code.
+- **Fix**: Always use `docker compose build --no-cache && docker compose up -d` when deploying code changes that must be picked up. Consider adding `--no-cache` to the deploy workflow, or use a build arg with the git SHA to bust the cache deterministically.
+
+## Tree layout: Ancestor-aware partner pruning is required
+
+- Co-parent inference creates partner links between anyone who shares a child. If a grandmother is incorrectly listed as `biological_parent` of a grandchild, this links her as partner of the grandchild's actual parents — who are her own children. Partner-sync then forces them to the same generation, conflicting with parent-child constraints.
+- Simple direct parent↔partner stripping is insufficient — **transitive** partner chains through co-parent inference create the same conflict.
+- **Fix**: Build partner-connected components, check if any member is an ancestor of another, and cut the bridging edge. Also skip ancestor-descendant pairs in sibling sync.
+
+## Tree layout: BFS must not follow partner edges
+
+- The longest-path BFS for generation assignment must only follow parent→child edges. Following partner edges during BFS creates unbounded queue growth when partner links loop back through the parent-child DAG via co-parent inference.
+- **Fix**: BFS follows only parent→child edges. Partner sync is deferred to the correction loop.

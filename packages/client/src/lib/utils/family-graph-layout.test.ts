@@ -445,4 +445,52 @@ describe('layoutFamilyGraph', () => {
     expect(genOf('parentSpouse')).toBeLessThan(genOf('childSpouse'));
     expect(genOf('childSpouse')).toBeLessThan(genOf('grandchild'));
   });
+
+  it('handles transitive ancestor-partner conflict from co-parent inference', () => {
+    // Production bug reproduction: Grandmother (GM) is listed as biological_parent
+    // of both her child (P) and grandchild (GC).  P and spouse (SP) are also parents
+    // of GC.  Co-parent inference links GM ↔ SP ↔ P as partners (all co-parents of
+    // GC).  Partner-sync chains force GM = SP = P (same gen), but GM is parent of P.
+    // Without cluster pruning, this makes the correction loop diverge.
+    const persons = [
+      makePerson('gm', 'Grandmother', 'X'),
+      makePerson('gf', 'Grandfather', 'X'),
+      makePerson('parent', 'Parent', 'X'),
+      makePerson('spouse', 'Spouse', 'X'),
+      makePerson('gc', 'Grandchild', 'X'),
+    ];
+    const edges: GraphEdge[] = [
+      // Grandparents married
+      { id: 'r1', personAId: 'gf', personBId: 'gm', type: 'marriage' },
+      // GM is parent of parent (correct)
+      { id: 'r2', personAId: 'gm', personBId: 'parent', type: 'biological_parent' },
+      // GF is parent of parent (correct)
+      { id: 'r3', personAId: 'gf', personBId: 'parent', type: 'biological_parent' },
+      // Parent married to Spouse
+      { id: 'r4', personAId: 'parent', personBId: 'spouse', type: 'marriage' },
+      // Parent is parent of GC
+      { id: 'r5', personAId: 'parent', personBId: 'gc', type: 'biological_parent' },
+      // Spouse is parent of GC
+      { id: 'r6', personAId: 'spouse', personBId: 'gc', type: 'biological_parent' },
+      // GM is ALSO listed as parent of GC (data error — she's grandmother, not parent)
+      // This triggers co-parent inference: GM ↔ parent ↔ spouse all co-parents of GC
+      { id: 'r7', personAId: 'gm', personBId: 'gc', type: 'biological_parent' },
+    ];
+
+    const result = layoutFamilyGraph(persons, edges);
+    expect(result.nodes).toHaveLength(5);
+
+    const genOf = (id: string) => {
+      const node = result.nodes.find((n) => n.person.id === id);
+      if (!node) throw new Error(`Node not found: ${id}`);
+      return node.generation;
+    };
+
+    // GM must be strictly above parent (ancestor constraint wins over partner-sync)
+    expect(genOf('gm')).toBeLessThan(genOf('parent'));
+    // Parent must be above grandchild
+    expect(genOf('parent')).toBeLessThan(genOf('gc'));
+    // Grandparents share a generation
+    expect(genOf('gm')).toBe(genOf('gf'));
+  });
 });

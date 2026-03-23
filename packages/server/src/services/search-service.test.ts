@@ -185,4 +185,33 @@ describe('searchService', () => {
     if (!page3.ok) return;
     expect(page3.data.results).toHaveLength(1);
   });
+
+  // ── Index removal on delete ──────────────────────────────────────
+
+  it('does not find a soft-deleted person after removal from index', () => {
+    const created = personService.createPerson(db, {
+      sex: 'male',
+      names: [{ given: 'Deleted', surname: 'Person' }],
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    searchService.rebuildIndex(db);
+
+    // Verify the person is found before deletion
+    const before = searchService.search(db, { query: 'Deleted Person' });
+    expect(before.ok).toBe(true);
+    if (!before.ok) return;
+    expect(before.data.results.length).toBeGreaterThanOrEqual(1);
+
+    // Delete the person (this should also remove from search index)
+    personService.deletePerson(db, created.data.id);
+
+    // Verify the person is no longer found
+    const after = searchService.search(db, { query: 'Deleted Person' });
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.data.results).toHaveLength(0);
+    expect(after.data.facets.person).toBe(0);
+  });
 });

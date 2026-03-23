@@ -17,6 +17,7 @@ import { enrichPersonRows } from './person-enrichment.ts';
 import { mustGet, countRows } from '../db/db-helpers.ts';
 import { now, uuid } from '../db/helpers.ts';
 import { normalizePagination } from '../utils/pagination.ts';
+import { removeFromIndex } from './search-service.ts';
 
 // Re-export event service for backward compatibility
 export { addPersonEvent, updatePersonEvent, deletePersonEvent } from './event-service.ts';
@@ -264,6 +265,9 @@ export function deletePerson(db: BetterSQLite3Database, id: string): Result<void
     .set({ deletedAt: timestamp, updatedAt: timestamp })
     .where(eq(persons.id, id))
     .run();
+
+  // Remove from FTS5 search index so deleted person won't appear in duplicates
+  removeFromIndex(db, 'person', id);
 
   return ok(undefined);
 }
