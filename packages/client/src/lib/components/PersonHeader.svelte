@@ -288,11 +288,11 @@
   .btn-delete {
     padding: var(--space-2) var(--space-3);
     font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     transition: all var(--transition-fast);
-    opacity: 0.6;
+    cursor: pointer;
   }
 
   .btn-delete:hover {
